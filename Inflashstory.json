@@ -1,0 +1,633 @@
+{
+  "info": {
+    "name": "Inflashstory",
+    "description": "Sistem Informasi Inventaris dan Peminjaman Barang Berbasis QR Code\n\nBase URL: http://localhost:8080\n\nAdmin Token: admin-secret-key (Header: X-Admin-Token)\n\nDefault Admin: admin / admin123",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Public Endpoints (Tanpa Auth)",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET All Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/items",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "items"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Items with Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/items?status=available&category=Elektronik&search=laptop",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "items"],
+              "query": [
+                { "key": "status", "value": "available" },
+                { "key": "category", "value": "Elektronik" },
+                { "key": "search", "value": "laptop" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Single Item",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/items/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "items", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Generate QR Code (PNG Image)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/items/1/qr",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "items", "1", "qr"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET QR Info (JSON)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/items/1/qr-info",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "items", "1", "qr-info"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Borrow Item (Otomatis dari Scan QR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"borrower_name\": \"Ahmad Fauzi\",\n  \"identity_no\": \"1237050088\",\n  \"study_program\": \"Teknik Informatika\",\n  \"class\": \"IF-6\",\n  \"phone\": \"081234567890\",\n  \"email\": \"ahmad@example.com\",\n  \"purpose\": \"Presentasi tugas akhir\",\n  \"est_return_date\": \"2026-05-05\",\n  \"notes\": \"Mohon dijaga dengan baik\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/borrow/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "borrow", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Public Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/stats",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Create Booking (Fitur Lanjutan)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"item_id\": 2,\n  \"borrower_name\": \"Siti Nurhaliza\",\n  \"identity_no\": \"1237050099\",\n  \"study_program\": \"Sistem Informasi\",\n  \"class\": \"SI-5\",\n  \"phone\": \"081234567891\",\n  \"email\": \"siti@example.com\",\n  \"purpose\": \"Praktikum basis data\",\n  \"est_return_date\": \"2026-05-06\",\n  \"notes\": \"Booking untuk praktikum\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/bookings",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "bookings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Cancel Booking",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/bookings/1/cancel",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "bookings", "1", "cancel"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Admin Auth Endpoints",
+      "item": [
+        {
+          "name": "POST Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Admin Profile (dengan Token)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/profile",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "profile"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Admin - Item Management",
+      "item": [
+        {
+          "name": "POST Create Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mouse Wireless Logitech\",\n  \"code\": \"IT-007\",\n  \"category\": \"Aksesoris\",\n  \"location\": \"Lab A\",\n  \"description\": \"Mouse wireless untuk komputer lab\",\n  \"status\": \"available\",\n  \"condition\": \"good\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/items",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "items"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Update Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mouse Wireless Logitech MX Master\",\n  \"location\": \"Lab B\",\n  \"description\": \"Mouse wireless premium untuk desain\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/items/7",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "items", "7"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH Update Item Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"maintenance\",\n  \"condition\": \"damaged\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/items/7/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "items", "7", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/items/7",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "items", "7"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Admin - Manual Borrow (Backup)",
+      "item": [
+        {
+          "name": "POST Manual Borrow (Admin Backup)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"item_id\": 2,\n  \"borrower_name\": \"Budi Santoso\",\n  \"identity_no\": \"1237050100\",\n  \"study_program\": \"Teknik Komputer\",\n  \"class\": \"TK-4\",\n  \"phone\": \"081234567892\",\n  \"email\": \"budi@example.com\",\n  \"purpose\": \"Praktikum jaringan\",\n  \"est_return_date\": \"2026-05-07\",\n  \"notes\": \"Manual input oleh admin\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/borrow/manual",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "borrow", "manual"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Admin - Return Item",
+      "item": [
+        {
+          "name": "POST Return Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Barang dikembalikan dalam kondisi baik\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/return/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "return", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Admin - Transaction Management",
+      "item": [
+        {
+          "name": "GET All Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/transactions",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "transactions"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Active Transactions (Borrowed)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/transactions/active",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "transactions", "active"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Single Transaction",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/transactions/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "transactions", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Overdue Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/transactions/overdue",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "transactions", "overdue"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Admin - Borrower Management",
+      "item": [
+        {
+          "name": "GET All Borrowers",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/borrowers",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "borrowers"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Borrowers with Search",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/borrowers?search=ahmad",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "borrowers"],
+              "query": [{ "key": "search", "value": "ahmad" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Single Borrower with History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/borrowers/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "borrowers", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. Admin - Booking Management (Fitur Lanjutan)",
+      "item": [
+        {
+          "name": "GET All Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/bookings",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "bookings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Bookings by Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/bookings?status=pending",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "bookings"],
+              "query": [{ "key": "status", "value": "pending" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Approve Booking",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\",\n  \"notes\": \"Booking disetujui, silakan ambil barang\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/bookings/1/approve",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "bookings", "1", "approve"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Reject Booking",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"rejected\",\n  \"notes\": \"Barang sedang dalam perbaikan\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/admin/bookings/1/approve",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "bookings", "1", "approve"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Check Expired Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/bookings/check-expired",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "bookings", "check-expired"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "9. Admin - Statistics",
+      "item": [
+        {
+          "name": "GET Detailed Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Token", "value": "admin-secret-key" }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/admin/stats/detail",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "admin", "stats", "detail"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "admin-secret-key",
+      "type": "string"
+    }
+  ]
+}
