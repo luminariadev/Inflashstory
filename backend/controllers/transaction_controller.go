@@ -65,6 +65,8 @@ func BorrowItem(c *gin.Context) {
 			Class:        req.Class,
 			Phone:        req.Phone,
 			Email:        req.Email,
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
 		}
 		if err := db.Create(&borrower).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -75,7 +77,22 @@ func BorrowItem(c *gin.Context) {
 		}
 	}
 
-	// Create transaction (otomatis, is_manual = false)
+	// ✅ UPDATE STATUS ITEM MENJADI BORROWED (HANYA UPDATE FIELD YANG DIPERLUKAN)
+	if err := db.Model(&item).Where("id = ?", itemID).Updates(map[string]interface{}{
+		"status":     "borrowed",
+		"updated_at": time.Now(),
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": "Gagal mengupdate status barang: " + err.Error(),
+		})
+		return
+	}
+
+	// Reload item setelah update
+	db.First(&item, itemID)
+
+	// Create transaction
 	transaction := models.Transaction{
 		TransactionCode: utils.GenerateTransactionCode(),
 		ItemID:          item.ID,
@@ -85,7 +102,9 @@ func BorrowItem(c *gin.Context) {
 		EstReturnDate:   estReturnDate,
 		Status:          "borrowed",
 		Notes:           req.Notes,
-		IsManual:        false, // Otomatis dari scan QR
+		IsManual:        false,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
 
 	if err := db.Create(&transaction).Error; err != nil {
@@ -99,14 +118,9 @@ func BorrowItem(c *gin.Context) {
 	// Reload transaction dengan Preload
 	db.Preload("Item").Preload("Borrower").First(&transaction, transaction.ID)
 
-	// Update item status
-	item.Status = "borrowed"
-	item.UpdatedAt = time.Now()
-	db.Save(&item)
-
 	c.JSON(http.StatusOK, gin.H{
 		"status":      "success",
-		"message":     "Barang berhasil dipinjam! Silakan ambil barang ke petugas.",
+		"message":     "Barang berhasil dipinjam!",
 		"transaction": transaction,
 		"item":        item,
 	})
@@ -164,11 +178,28 @@ func ManualBorrowItem(c *gin.Context) {
 			Class:        req.Class,
 			Phone:        req.Phone,
 			Email:        req.Email,
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
 		}
 		db.Create(&borrower)
 	}
 
-	// Create transaction (manual, is_manual = true)
+	// ✅ UPDATE STATUS ITEM MENJADI BORROWED
+	if err := db.Model(&item).Where("id = ?", req.ItemID).Updates(map[string]interface{}{
+		"status":     "borrowed",
+		"updated_at": time.Now(),
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": "Gagal mengupdate status barang: " + err.Error(),
+		})
+		return
+	}
+
+	// Reload item
+	db.First(&item, req.ItemID)
+
+	// Create transaction
 	transaction := models.Transaction{
 		TransactionCode: utils.GenerateTransactionCode(),
 		ItemID:          item.ID,
@@ -178,14 +209,13 @@ func ManualBorrowItem(c *gin.Context) {
 		EstReturnDate:   estReturnDate,
 		Status:          "borrowed",
 		Notes:           req.Notes,
-		IsManual:        true, // Input manual admin
+		IsManual:        true,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
 
 	db.Create(&transaction)
 	db.Preload("Item").Preload("Borrower").First(&transaction, transaction.ID)
-
-	item.Status = "borrowed"
-	db.Save(&item)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":      "success",
@@ -229,12 +259,17 @@ func ReturnItem(c *gin.Context) {
 
 	db.Save(&transaction)
 
-	// Update item status
-	var item models.Item
-	db.First(&item, transaction.ItemID)
-	item.Status = "available"
-	item.UpdatedAt = time.Now()
-	db.Save(&item)
+	// Update item status back to available (hanya update field yang diperlukan)
+	if err := db.Model(&models.Item{}).Where("id = ?", transaction.ItemID).Updates(map[string]interface{}{
+		"status":     "available",
+		"updated_at": time.Now(),
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": "Gagal mengupdate status barang: " + err.Error(),
+		})
+		return
+	}
 
 	// Reload transaction
 	db.Preload("Item").Preload("Borrower").First(&transaction, transaction.ID)

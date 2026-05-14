@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"inventory-api/models"
@@ -11,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// GetQR - Generate QR code for item
+// GetQR - Generate QR code untuk item (berisi URL form peminjaman)
 func GetQR(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	id := c.Param("id")
@@ -25,26 +24,11 @@ func GetQR(c *gin.Context) {
 		return
 	}
 
-	// QR content berisi URL frontend untuk form peminjaman
-	qrContent := map[string]interface{}{
-		"type":      "borrow_form",
-		"item_id":   item.ID,
-		"item_name": item.Name,
-		"item_code": item.Code,
-		"url":       "http://localhost:5173/borrow-form?item_id=" + id,
-	}
+	// QR Code berisi URL lengkap ke form peminjaman frontend
+	// Contoh: http://localhost:5173/borrow?item_id=1
+	qrURL := "http://localhost:5173/borrow?item_id=" + id
 
-	// ✅ FIX: Convert to JSON manually
-	jsonBytes, err := json.Marshal(qrContent)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "error",
-			"message": "Gagal membuat konten QR: " + err.Error(),
-		})
-		return
-	}
-
-	qr, err := qrcode.New(string(jsonBytes), qrcode.Medium)
+	qr, err := qrcode.New(qrURL, qrcode.Medium)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",

@@ -1,15 +1,32 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
+import Icon from '../components/Icon'
+import ItemCard from '../components/ItemCard'
 import API from '../api'
 
-function ItemList() {
+const ItemListPage = () => {
+  const location = useLocation()
   const [items, setItems] = useState([])
+  const [filteredItems, setFilteredItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [activeFilter, setActiveFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isDark, setIsDark] = useState(true)
 
   useEffect(() => {
-    fetchItems()
+    const checkTheme = () => {
+      setIsDark(!document.body.classList.contains('light-theme'))
+    }
+    checkTheme()
+    
+    const observer = new MutationObserver(checkTheme)
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+    
+    return () => observer.disconnect()
   }, [])
 
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
+    setLoading(true)
     try {
       const response = await API.get('/items')
       setItems(response.data.data)
@@ -18,42 +35,101 @@ function ItemList() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'available': return 'bg-green-100 text-green-800'
-      case 'borrowed': return 'bg-red-100 text-red-800'
-      case 'maintenance': return 'bg-yellow-100 text-yellow-800'
-      default: return 'bg-gray-100 text-gray-800'
+  useEffect(() => {
+    fetchItems()
+  }, [fetchItems, location.state?.refresh]) 
+
+  useEffect(() => {
+    let result = [...items]
+    
+    if (activeFilter !== 'all') {
+      result = result.filter(item => item.status === activeFilter)
     }
-  }
+    
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter(item => 
+        item.name.toLowerCase().includes(query) || 
+        (item.code && item.code.toLowerCase().includes(query))
+      )
+    }
+    
+    setFilteredItems(result)
+  }, [items, activeFilter, searchQuery])
 
-  if (loading) return <div className="text-center py-10">Loading...</div>
+  const filters = [
+    { value: 'all', label: 'SEMUA', icon: 'inventory_2' },
+    { value: 'available', label: 'TERSEDIA', icon: 'check_circle' },
+    { value: 'borrowed', label: 'DIPINJAM', icon: 'sync_alt' },
+    { value: 'damaged', label: 'RUSAK', icon: 'error' },
+    { value: 'maintenance', label: 'PERAWATAN', icon: 'build' },
+  ]
+
+  const titleClass = isDark ? 'text-white' : 'text-gray-800'
+  const textClass = isDark ? 'text-slate-300' : 'text-gray-600'
+  const inputClass = isDark 
+    ? 'bg-surface-container-high border-white/10 text-white placeholder:text-slate-400 focus:ring-1 focus:ring-primary' 
+    : 'bg-white border-gray-300 text-gray-800 placeholder:text-gray-400 focus:ring-1 focus:ring-primary'
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h2 className="text-3xl font-bold mb-6">Daftar Barang Inventaris</h2>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {items.map((item) => (
-          <div key={item.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
-            <h3 className="text-xl font-semibold mb-2">{item.name}</h3>
-            <p className="text-gray-600 mb-2">Kode: {item.code}</p>
-            <p className="text-gray-600 mb-2">Lokasi: {item.location || '-'}</p>
-            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(item.status)}`}>
-              {item.status}
-            </span>
-            <button 
-              onClick={() => window.open(`http://localhost:8080/api/items/${item.id}/qr`, '_blank')}
-              className="mt-4 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition"
-            >
-              📱 Lihat QR Code
-            </button>
+    <main className="pt-24 pb-12 px-6 max-w-7xl mx-auto space-y-6 flex-1">
+      <section className="space-y-5">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="space-y-1">
+            <h2 className={`text-3xl font-bold ${titleClass}`}>Daftar Barang Inventaris</h2>
+            <p className={`text-sm ${textClass}`}>Kelola dan telusuri seluruh aset kampus dengan mudah.</p>
           </div>
-        ))}
-      </div>
-    </div>
+          <div className="relative w-full md:w-72">
+            <Icon name="search" className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-400' : 'text-gray-400'}`} />
+            <input
+              type="text"
+              placeholder="Cari barang..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full border rounded-xl pl-11 pr-4 py-3 outline-none transition ${inputClass}`}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {filters.map((filter) => (
+            <button
+              key={filter.value}
+              onClick={() => setActiveFilter(filter.value)}
+              className={`text-xs font-bold tracking-wide px-4 py-2 rounded-full transition-all ${
+                activeFilter === filter.value
+                  ? 'bg-primary text-white'
+                  : isDark 
+                    ? 'glass text-white/80 glass-hover' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <div className={`animate-pulse ${isDark ? 'text-slate-400' : 'text-gray-400'}`}>Memuat data...</div>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className={`${isDark ? 'glass-card' : 'bg-white rounded-xl shadow-md border border-gray-200 p-12'} text-center`}>
+            <Icon name="inventory_2" className={`text-5xl mb-3 ${isDark ? 'text-slate-500' : 'text-gray-400'}`} />
+            <p className={isDark ? 'text-slate-400' : 'text-gray-500'}>Tidak ada barang ditemukan</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredItems.map((item, index) => (
+              <ItemCard key={item.id} item={item} index={index} isDark={isDark} />
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
   )
 }
 
-export default ItemList
+export default ItemListPage

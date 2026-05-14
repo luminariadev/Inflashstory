@@ -8,7 +8,7 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine) {
-	// Public routes (tanpa auth)
+	// ==================== PUBLIC ROUTES (Tanpa Auth) ====================
 	api := r.Group("/api")
 	{
 		// Item routes (public - lihat barang)
@@ -27,20 +27,15 @@ func SetupRoutes(r *gin.Engine) {
 		// Stats (public - untuk info website)
 		api.GET("/stats", controllers.GetStats)
 
-		// Health check
-		r.GET("/health", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"status": "ok",
-			})
-		})
+		// ✅ LOGIN endpoint (PUBLIC - tidak perlu auth)
+		api.POST("/admin/login", controllers.LoginAdmin)
 	}
 
-	// Admin routes (perlu autentikasi)
+	// ==================== ADMIN ROUTES (Perlu Autentikasi) ====================
 	admin := r.Group("/api/admin")
 	admin.Use(middleware.AdminAuth())
 	{
-		// Auth
-		admin.POST("/login", controllers.LoginAdmin)
+		// Profile
 		admin.GET("/profile", controllers.GetAdminProfile)
 
 		// Item management
@@ -73,4 +68,11 @@ func SetupRoutes(r *gin.Engine) {
 		// Stats detail
 		admin.GET("/stats/detail", controllers.GetStats)
 	}
+
+	// Health check (public)
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
 }

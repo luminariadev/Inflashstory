@@ -16,6 +16,7 @@ type Item struct {
 	Description string         `gorm:"size:500" json:"description"`
 	Status      string         `gorm:"default:available;size:20" json:"status"` // available, borrowed, damaged, maintenance, lost
 	Condition   string         `gorm:"default:good;size:20" json:"condition"`   // good, fair, damaged
+	ImageURL    string         `gorm:"size:500" json:"image_url"`               // URL atau path foto barang
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`

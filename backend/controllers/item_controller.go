@@ -101,6 +101,7 @@ func CreateItem(c *gin.Context) {
 	if item.Condition == "" {
 		item.Condition = "good"
 	}
+	// ImageURL sudah otomatis terisi dari JSON
 
 	if err := db.Create(&item).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -139,6 +140,7 @@ func UpdateItem(c *gin.Context) {
 		return
 	}
 
+	// Update fields (termasuk ImageURL)
 	db.Model(&item).Updates(updates)
 
 	c.JSON(http.StatusOK, gin.H{
