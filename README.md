@@ -31,7 +31,7 @@
 
 ## 🎯 Tentang Project
 
-**Inflashtory** adalah aplikasi manajemen Inventaris yang memudahkan proses peminjaman barang di lingkungan kampus dengan teknologi QR Code. Sistem ini menggantikan proses manual yang memakan waktu dengan solusi digital yang cepat, transparan, dan terintegrasi.
+**Inflashtory** adalah aplikasi manajemen inventaris yang memudahkan proses peminjaman barang di lingkungan kampus dengan teknologi QR Code. Sistem ini menggantikan proses manual yang memakan waktu dengan solusi digital yang cepat, transparan, dan terintegrasi.
 
 ### Masalah yang Dipecahkan
 
