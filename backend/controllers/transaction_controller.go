@@ -69,7 +69,7 @@ func BorrowItem(c *gin.Context) {
 
 		// ✅ BUKA GEMBOK: Bandingkan jumlah bentrokan dengan Total Stok
 		if overlappingCount >= int64(finalItem.TotalStock) {
-			return errors.New("Maaf, stok barang penuh/habis pada rentang waktu tersebut. Silakan pilih jadwal lain.")
+			return errors.New("Stok tidak mencukupi untuk waktu tersebut")
 		}
 
 		// C. Validasi Surat Pengantar & Jaminan ID

@@ -14,16 +14,16 @@ const BorrowFormPage = () => {
   const [searchParams] = useSearchParams()
   const itemId = searchParams.get('item_id')
   const navigate = useNavigate()
-  
+
   const [isDark, setIsDark] = useState(true)
   const [item, setItem] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  
+
   // ✅ STATE BARU: Nampung antrean jadwal bentrok dari Go
   const [activeBookings, setActiveBookings] = useState([])
   const [showSuccessModal, setShowSuccessModal] = useState(false) // ✅ TAHAN REDIRECT BUAT ANAK OTS
-  
+
   const [formData, setFormData] = useState({
     borrower_name: '',
     identity_no: '',
@@ -35,8 +35,8 @@ const BorrowFormPage = () => {
     start_date: null,     // ✅ UBAH JADI NULL (Object Date)
     est_return_date: null, // ✅ UBAH JADI NULL (Object Date)
     notes: '',
-    id_photo: '', 
-    attachment: '' 
+    id_photo: '',
+    attachment: ''
   })
 
   useEffect(() => {
@@ -44,10 +44,10 @@ const BorrowFormPage = () => {
       setIsDark(!document.body.classList.contains('light-theme'))
     }
     checkTheme()
-    
+
     const observer = new MutationObserver(checkTheme)
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] })
-    
+
     return () => observer.disconnect()
   }, [])
 
@@ -57,7 +57,7 @@ const BorrowFormPage = () => {
       navigate('/')
       return
     }
-    
+
     fetchItem()
   }, [itemId, navigate])
 
@@ -65,7 +65,7 @@ const BorrowFormPage = () => {
     try {
       const response = await API.get(`/items/${itemId}`)
       const itemData = response.data.data
-      
+
       if (itemData.status !== 'available') {
         toast.error(`Barang sedang ${itemData.status === 'borrowed' ? 'dipinjam' : 'tidak tersedia'}`, { id: 'status-error' })
         navigate('/')
@@ -81,7 +81,7 @@ const BorrowFormPage = () => {
       setFormData(prev => ({ ...prev, start_date: new Date() }))
 
     } catch (error) {
-      toast.error('Gagal memuat data barang', { id: 'fetch-error' })
+      toast.error('Barang tidak ditemukan atau QR tidak valid', { id: 'fetch-error' })
       navigate('/')
     } finally {
       setLoading(false)
@@ -91,7 +91,7 @@ const BorrowFormPage = () => {
   // ✅ LOGIKA SAKTI ANTI BENTROK JAM & HIGHLIGHT WARNA (ULTIMATE PATCH)
   const getLocalDate = (dateString) => {
     if (!dateString) return new Date()
-    return new Date(dateString) 
+    return new Date(dateString)
   }
 
   // ✅ FIX MULTI-STOK: Jangan langsung blokir jam, hitung dulu berapa yg overlap!
@@ -101,7 +101,7 @@ const BorrowFormPage = () => {
       const end = getLocalDate(trx.est_return_date)
       return timeCheck > start && timeCheck < end
     }).length
-    
+
     // Baru diblokir kalau yang minjam di jam itu udah nyentuh batas maksimal stok
     return overlapCount >= (item?.total_stock || 1)
   }
@@ -140,10 +140,10 @@ const BorrowFormPage = () => {
   const filterAvailableTimes = (time) => {
     const selectedDate = new Date(time)
     const hours = selectedDate.getHours()
-    
+
     // 1. Harus jam operasional
     if (hours < 8 || hours >= 16) return false
-    
+
     // 2. Gak boleh milih titik jam yang kuota stoknya sudah penuh dipinjam orang
     if (isTimeConflicting(selectedDate)) return false
 
@@ -152,7 +152,7 @@ const BorrowFormPage = () => {
       const start = formData.start_date.getTime()
       const checkTime = selectedDate.getTime()
       const totalStock = item?.total_stock || 1
-      
+
       const hasFullBlockInBetween = activeBookings.some(trx => {
         const trxStart = getLocalDate(trx.borrow_date).getTime()
         if (trxStart > start && trxStart < checkTime) {
@@ -166,7 +166,7 @@ const BorrowFormPage = () => {
         return false
       })
 
-      if (hasFullBlockInBetween) return false 
+      if (hasFullBlockInBetween) return false
     }
 
     return true
@@ -190,7 +190,7 @@ const BorrowFormPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     // Cegah submit kalau barang butuh Surat PDF
     if (item?.require_letter && !formData.attachment) {
       toast.error('Surat peminjaman (PDF) wajib diunggah!')
@@ -209,7 +209,7 @@ const BorrowFormPage = () => {
     }
 
     setSubmitting(true)
-    
+
     // ✅ UBAH OBJECT DATE MENJADI STRING YANG DIMENGERTI GO (YYYY-MM-DDThh:mm)
     const formatToGo = (dateObj) => {
       const year = dateObj.getFullYear();
@@ -226,14 +226,14 @@ const BorrowFormPage = () => {
       est_return_date: formatToGo(formData.est_return_date),
       type: '' // ✅ KOSONGKAN: Penanda ke Go kalau ini murni Scan OTS di tempat
     }
-    
+
     try {
       const response = await API.post(`/borrow/${itemId}`, payload)
-      
+
       if (response.data.status === 'success') {
         // ✅ Cuma nampilin sukses ringan, sisanya dijelasin di Modal
         toast.success(`Berhasil terkirim!`, { duration: 2000 })
-        
+
         // ✅ TAHAN REDIRECT! Buka Pop-up Edukasi OTS
         setShowSuccessModal(true)
         setSubmitting(false)
@@ -241,19 +241,19 @@ const BorrowFormPage = () => {
     } catch (error) {
       // Ambil pesan error dari backend, kalau kosong pakai pesan fallback
       const errorMessage = error.response?.data?.message || 'Barang gagal dipinjam (mungkin sudah di-lock orang lain)'
-      
+
       // Tampilkan error (Hapus emoji ❌ manual biar gak double)
       toast.error(errorMessage)
-      
+
       // LOGIC UX SUPER KETAT: 
       // Kalau status 400 (Bad Request) ATAU pesannya gak jelas dari Ngrok, langsung tendang balik ke Katalog!
       const isItemTaken = error.response?.status === 400 || errorMessage.includes('tersedia') || !error.response;
-      
+
       if (isItemTaken) {
         setTimeout(() => {
           toast('Mengalihkan kembali ke katalog...', { icon: '🔄', duration: 2000 })
         }, 500); // Jeda setengah detik biar dia baca error merahnya dulu
-        
+
         setTimeout(() => {
           navigate('/items', { state: { refresh: Date.now() } })
         }, 2500)
@@ -270,19 +270,19 @@ const BorrowFormPage = () => {
   // Setup Tanggal Pinjam (Bisa hari ini, Maksimal 7 Hari)
   const today = new Date()
   const minDateStr = today.toISOString().split('T')[0]
-  
+
   const maxDate = new Date()
   maxDate.setDate(today.getDate() + 7)
   const maxDateStr = maxDate.toISOString().split('T')[0]
 
   const titleClass = isDark ? 'text-white' : 'text-gray-800'
   const textClass = isDark ? 'text-slate-300' : 'text-gray-600'
-  const inputClass = isDark 
-    ? 'bg-[#1e1f23] border border-white/10 text-white placeholder:text-slate-500 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-3 w-full outline-none transition' 
+  const inputClass = isDark
+    ? 'bg-[#1e1f23] border border-white/10 text-white placeholder:text-slate-500 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-3 w-full outline-none transition'
     : 'bg-white border border-gray-300 text-gray-800 placeholder:text-gray-400 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-3 w-full outline-none transition'
   const labelClass = `block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-gray-700'}`
-  const cardClass = isDark 
-    ? 'bg-[#1e1f23]/50 backdrop-blur-sm border border-white/10 rounded-2xl p-6' 
+  const cardClass = isDark
+    ? 'bg-[#1e1f23]/50 backdrop-blur-sm border border-white/10 rounded-2xl p-6'
     : 'bg-white rounded-2xl shadow-xl border border-gray-200 p-6'
 
   if (loading) {
@@ -298,7 +298,7 @@ const BorrowFormPage = () => {
 
   return (
     <main className="min-h-screen pt-24 pb-12 px-4 max-w-2xl mx-auto">
-      
+
       {/* ✅ INJEKSI CSS BIAR DATEPICKER-NYA IKUTAN DARK MODE ELEGAN */}
       <style>{`
         .react-datepicker-popper { z-index: 9999 !important; }
@@ -335,8 +335,8 @@ const BorrowFormPage = () => {
       {/* Info Barang */}
       <div className={`${cardClass} mb-6`}>
         <div className="flex gap-4">
-          <img 
-            src={item?.image_url || `https://picsum.photos/seed/${item?.id}/80/80`} 
+          <img
+            src={item?.image_url || `https://picsum.photos/seed/${item?.id}/80/80`}
             alt={item?.name}
             className="w-20 h-20 rounded-xl object-cover"
           />
@@ -460,7 +460,7 @@ const BorrowFormPage = () => {
                 <label className={labelClass}>Waktu Diambil <span className="text-red-500">*</span></label>
                 <DatePicker
                   selected={formData.start_date}
-                  onChange={() => {}} 
+                  onChange={() => { }}
                   showTimeSelect
                   timeFormat="HH:mm"
                   dateFormat="d MMMM yyyy, HH:mm"
@@ -508,7 +508,7 @@ const BorrowFormPage = () => {
                   {formData.id_photo ? (
                     <div className="flex flex-col items-center">
                       <img src={formData.id_photo} alt="Preview ID" className="h-40 w-auto object-contain mb-3 rounded-lg border border-gray-500/30 shadow-md" />
-                      <button type="button" onClick={() => setFormData({...formData, id_photo: ''})} className="text-sm px-4 py-1.5 bg-red-500/10 text-red-500 rounded-lg font-medium hover:bg-red-500/20 transition">Hapus Foto</button>
+                      <button type="button" onClick={() => setFormData({ ...formData, id_photo: '' })} className="text-sm px-4 py-1.5 bg-red-500/10 text-red-500 rounded-lg font-medium hover:bg-red-500/20 transition">Hapus Foto</button>
                     </div>
                   ) : (
                     <>
@@ -553,7 +553,7 @@ const BorrowFormPage = () => {
                         <Icon name="picture_as_pdf" />
                         <span className="text-sm font-medium">Surat_Terlampir.pdf</span>
                       </div>
-                      <button type="button" onClick={() => setFormData({...formData, attachment: ''})} className="text-sm px-4 py-1.5 bg-red-500/10 text-red-500 rounded-lg font-medium hover:bg-red-500/20 transition">Hapus File</button>
+                      <button type="button" onClick={() => setFormData({ ...formData, attachment: '' })} className="text-sm px-4 py-1.5 bg-red-500/10 text-red-500 rounded-lg font-medium hover:bg-red-500/20 transition">Hapus File</button>
                     </div>
                   ) : (
                     <>
@@ -600,8 +600,8 @@ const BorrowFormPage = () => {
           <div className="pt-2">
             <label className="flex items-start gap-3 cursor-pointer group">
               <div className="relative flex items-center justify-center mt-0.5">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   required
                   className="peer appearance-none w-5 h-5 border-2 rounded-md checked:bg-primary checked:border-primary border-gray-400 transition-all cursor-pointer"
                 />
@@ -617,11 +617,10 @@ const BorrowFormPage = () => {
             <button
               type="button"
               onClick={() => navigate('/items')}
-              className={`flex-1 py-3 rounded-xl font-medium text-sm transition ${
-                isDark 
-                  ? 'bg-[#1e1f23] border border-white/10 text-white hover:bg-white/5' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`flex-1 py-3 rounded-xl font-medium text-sm transition ${isDark
+                ? 'bg-[#1e1f23] border border-white/10 text-white hover:bg-white/5'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               Batal
             </button>
@@ -650,14 +649,14 @@ const BorrowFormPage = () => {
       {showSuccessModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className={`max-w-md w-full p-8 rounded-3xl shadow-2xl animate-zoom-in text-center ${isDark ? 'bg-[#1e1f23] border border-white/10' : 'bg-white border border-gray-200'}`}>
-            
+
             {/* Animasi Jam Pasir (Nunggu ACC) */}
             <div className="mx-auto w-20 h-20 bg-orange-500/20 text-orange-500 rounded-full flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(249,115,22,0.3)]">
               <Icon name="hourglass_empty" className="text-4xl animate-pulse" />
             </div>
-            
+
             <h2 className={`text-2xl font-black mb-3 ${isDark ? 'text-white' : 'text-gray-800'}`}>Pengajuan Diproses!</h2>
-            
+
             <p className={`text-sm mb-6 leading-relaxed ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>
               Pengajuan pinjam <span className="font-bold text-primary">{item?.name}</span> kamu sudah masuk ke antrean sistem.
             </p>
@@ -681,7 +680,7 @@ const BorrowFormPage = () => {
             >
               <Icon name="check_circle" className="text-xl" /> Saya Mengerti
             </button>
-            
+
           </div>
         </div>
       )}
