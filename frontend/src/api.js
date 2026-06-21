@@ -1,14 +1,17 @@
-import axios from 'axios'
+﻿import axios from 'axios'
+
+// Use VITE_API_URL from env, fallback to relative /api (works in dev with Vite proxy)
+// For production/preview, set VITE_API_URL to http://localhost:8080/api
+const baseURL = import.meta.env.VITE_API_URL || '/api'
 
 const API = axios.create({
-  baseURL: '/api',
+  baseURL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// Response interceptor untuk error handling
 API.interceptors.response.use(
   (response) => response,
   (error) => {

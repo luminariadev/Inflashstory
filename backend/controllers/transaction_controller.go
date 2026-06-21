@@ -1,7 +1,7 @@
-package controllers
+﻿package controllers
 
 import (
-	// ✅ TAMBAHIN INI
+	// âœ… TAMBAHIN INI
 	"errors"
 	"net/http"
 	"time"
@@ -46,7 +46,7 @@ func BorrowItem(c *gin.Context) {
 	var finalTransaction models.Transaction
 	var finalItem models.Item
 
-	// 🔥 3. MULAI DATABASE TRANSACTION (SISTEM KARCIS ANTREAN)
+	// ðŸ”¥ 3. MULAI DATABASE TRANSACTION (SISTEM KARCIS ANTREAN)
 	// Kalau ada 2 orang ngeklik barengan di milidetik yang sama, orang kedua disuruh nunggu di sini!
 	err = db.Transaction(func(tx *gorm.DB) error {
 
@@ -67,7 +67,7 @@ func BorrowItem(c *gin.Context) {
 			Where("borrow_date < ? AND est_return_date > ?", estReturnDate, startDate).
 			Count(&overlappingCount)
 
-		// ✅ BUKA GEMBOK: Bandingkan jumlah bentrokan dengan Total Stok
+		// âœ… BUKA GEMBOK: Bandingkan jumlah bentrokan dengan Total Stok
 		if overlappingCount >= int64(finalItem.TotalStock) {
 			return errors.New("Stok tidak mencukupi untuk waktu tersebut")
 		}
@@ -221,7 +221,7 @@ func ManualBorrowItem(c *gin.Context) {
 		db.Create(&borrower)
 	}
 
-	// ✅ UPDATE STATUS ITEM MENJADI BORROWED
+	// âœ… UPDATE STATUS ITEM MENJADI BORROWED
 	if err := db.Model(&item).Where("id = ?", req.ItemID).Updates(map[string]interface{}{
 		"status":     "borrowed",
 		"updated_at": time.Now(),
@@ -397,10 +397,10 @@ func GetOverdueTransactions(c *gin.Context) {
 type ApproveTransactionReq struct {
 	Action  string `json:"action" binding:"required"`
 	Notes   string `json:"notes"`
-	TrxType string `json:"trx_type"` // ✅ TAMBAHIN INI: Biar frontend yang nentuin jenisnya!
+	TrxType string `json:"trx_type"` // âœ… TAMBAHIN INI: Biar frontend yang nentuin jenisnya!
 }
 
-// ✅ FIX FINAL: ApproveTransaction (Anti Zona Waktu Ngawur)
+// âœ… FIX FINAL: ApproveTransaction (Anti Zona Waktu Ngawur)
 func ApproveTransaction(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
 	id := c.Param("id")
@@ -417,7 +417,7 @@ func ApproveTransaction(c *gin.Context) {
 		return
 	}
 
-	// 🕵️ LOGIC SAKTI BARU: Dengerin perintah langsung dari Frontend!
+	// ðŸ•µï¸ LOGIC SAKTI BARU: Dengerin perintah langsung dari Frontend!
 	// Gak usah hitung selisih menit lagi yang rawan bug zona waktu SQLite.
 	isBooking := req.TrxType == "booking"
 
@@ -433,7 +433,7 @@ func ApproveTransaction(c *gin.Context) {
 			// JALUR OTS: Status langsung 'borrowed'.
 			transaction.Status = "borrowed"
 
-			// ✅ MULTI-STOK: Cek apakah stok fisik udah habis beneran?
+			// âœ… MULTI-STOK: Cek apakah stok fisik udah habis beneran?
 			var activeNow int64
 			db.Model(&models.Transaction{}).
 				Where("item_id = ?", transaction.ItemID).
@@ -465,7 +465,7 @@ func ApproveTransaction(c *gin.Context) {
 
 		transaction.Status = "borrowed"
 
-		// ✅ MULTI-STOK (HANDOVER): Cek apakah setelah diserahkan stok fisik jadi 0?
+		// âœ… MULTI-STOK (HANDOVER): Cek apakah setelah diserahkan stok fisik jadi 0?
 		var activeNow int64
 		db.Model(&models.Transaction{}).
 			Where("item_id = ?", transaction.ItemID).
@@ -490,7 +490,7 @@ func ApproveTransaction(c *gin.Context) {
 		return
 	}
 
-	// ✅ FIX CELAH INFORMASI: Simpan catatan/alasan tolak ke database!
+	// âœ… FIX CELAH INFORMASI: Simpan catatan/alasan tolak ke database!
 	if req.Notes != "" {
 		transaction.Notes = req.Notes
 	}

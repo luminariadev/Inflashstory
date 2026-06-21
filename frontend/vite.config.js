@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+﻿import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa' 
 
@@ -8,7 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-      // ✅ FIX BLANK PUTIH: Ngajarin PWA cara nanganin refresh halaman pas offline
+      // âœ… FIX BLANK PUTIH: Ngajarin PWA cara nanganin refresh halaman pas offline
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'], // Cache semua file UI
         navigateFallback: '/index.html', // Kalau refresh gagal, balikin ke index.html
@@ -32,10 +32,10 @@ export default defineConfig({
             src: '/pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'maskable' // ✅ FIX WARNING 1: Hapus kata 'any '
+            purpose: 'maskable' // âœ… FIX WARNING 1: Hapus kata 'any '
           }
         ],
-        // ✅ FIX WARNING 2: Tambahin dummy screenshot (Bikin tampilan install ala Play Store)
+        // âœ… FIX WARNING 2: Tambahin dummy screenshot (Bikin tampilan install ala Play Store)
         screenshots: [
           {
             src: '/pwa-512x512.png', // Pake logo lu dulu aja buat sementara
@@ -53,7 +53,7 @@ export default defineConfig({
           }
         ]
       },
-      // ✅ INI KUNCI SAKTINYA BIAR MANIFEST MUNCUL DI LOCALHOST!
+      // âœ… INI KUNCI SAKTINYA BIAR MANIFEST MUNCUL DI LOCALHOST!
       devOptions: {
         enabled: true,
         type: 'module',
@@ -61,13 +61,14 @@ export default defineConfig({
     })
   ],
   server: {
+    host: '0.0.0.0',
     port: 5173,
     open: true,
     allowedHosts: [
-      'consuming-defender-prompter.ngrok-free.dev', // Link ngrok lu
+      'encourage-village-purchase.ngrok-free.dev', // Link ngrok lu
       '.ngrok-free.dev' 
     ],
-    // ✅ SETTINGAN PROXY LU AMAN GAK KESENTUH
+    // âœ… SETTINGAN PROXY LU AMAN GAK KESENTUH
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"log"
@@ -11,10 +11,15 @@ import (
 	"inventory-api/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func init() {
+	// Load .env file
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("âš ï¸ .env file not found, using environment variables")
+	}
 	config.InitDB()
 }
 
@@ -29,9 +34,9 @@ func migrateDatabase() {
 		&models.Admin{},
 	)
 	if err != nil {
-		log.Fatal("❌ Gagal migrate database:", err)
+		log.Fatal("âŒ Gagal migrate database:", err)
 	}
-	log.Println("✅ Database migrated!")
+	log.Println("âœ… Database migrated!")
 }
 
 func seedDatabase() {
@@ -53,7 +58,7 @@ func seedDatabase() {
 		for _, item := range items {
 			db.Create(&item)
 		}
-		log.Println("✅ Seed items completed!")
+		log.Println("âœ… Seed items completed!")
 	}
 
 	// Seed Admin default
@@ -71,7 +76,7 @@ func seedDatabase() {
 			UpdatedAt: time.Now(),
 		}
 		db.Create(&admin)
-		log.Println("✅ Default admin created! Username: admin, Password: admin123")
+		log.Println("âœ… Default admin created! Username: admin, Password: admin123")
 	}
 }
 
@@ -79,7 +84,7 @@ func main() {
 	migrateDatabase()
 	seedDatabase()
 
-	// ✅ NYALAIN MESIN CRON AUTO-CANCEL
+	// âœ… NYALAIN MESIN CRON AUTO-CANCEL
 	db := config.GetDB()
 	utils.StartAutoCancelCron(db)
 
@@ -92,8 +97,8 @@ func main() {
 	// Routes
 	routes.SetupRoutes(r)
 
-	log.Println("🚀 Server running on http://localhost:8080")
-	log.Println("📋 API endpoints:")
+	log.Println("ðŸš€ Server running on http://localhost:8080")
+	log.Println("ðŸ“‹ API endpoints:")
 	log.Println("   Public:")
 	log.Println("     GET  /api/items")
 	log.Println("     POST /api/borrow/:id  (scan QR - otomatis)")
@@ -105,6 +110,6 @@ func main() {
 	log.Println("     GET  /api/admin/borrowers")
 
 	if err := r.Run(":8080"); err != nil {
-		log.Fatal("❌ Gagal start server:", err)
+		log.Fatal("âŒ Gagal start server:", err)
 	}
 }
