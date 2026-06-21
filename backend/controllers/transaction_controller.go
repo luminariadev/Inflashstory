@@ -428,26 +428,14 @@ func ApproveTransaction(c *gin.Context) {
 		}
 
 		if isBooking {
+			// Booking: status approved, item langsung "borrowed" (direservasi peminjam)
 			transaction.Status = "approved"
+			db.Model(&models.Item{}).Where("id = ?", transaction.ItemID).Update("status", "borrowed")
 		} else {
 			// JALUR OTS: Status langsung 'borrowed'.
 			transaction.Status = "borrowed"
-
-			// âœ… MULTI-STOK: Cek apakah stok fisik udah habis beneran?
-			var activeNow int64
-			db.Model(&models.Transaction{}).
-				Where("item_id = ?", transaction.ItemID).
-				Where("status IN ?", []string{"pending", "approved", "borrowed"}).
-				Where("borrow_date <= ? AND est_return_date >= ?", time.Now(), time.Now()).
-				Count(&activeNow)
-
-			var item models.Item
-			db.First(&item, transaction.ItemID)
-
-			// Kunci fisik item HANYA JIKA antrean saat ini udah menuhin Total Stok
-			if activeNow >= int64(item.TotalStock) {
-				db.Model(&models.Item{}).Where("id = ?", transaction.ItemID).Update("status", "borrowed")
-			}
+			// ✅ FIX: Item status langsung "borrowed" tanpa cek stok penuh
+			db.Model(&models.Item{}).Where("id = ?", transaction.ItemID).Update("status", "borrowed")
 		}
 
 	} else if req.Action == "handover" {
@@ -464,25 +452,21 @@ func ApproveTransaction(c *gin.Context) {
 		}
 
 		transaction.Status = "borrowed"
-
-		// âœ… MULTI-STOK (HANDOVER): Cek apakah setelah diserahkan stok fisik jadi 0?
-		var activeNow int64
-		db.Model(&models.Transaction{}).
-			Where("item_id = ?", transaction.ItemID).
-			Where("status IN ?", []string{"pending", "approved", "borrowed"}).
-			Where("borrow_date <= ? AND est_return_date >= ?", time.Now(), time.Now()).
-			Count(&activeNow)
-
-		if activeNow >= int64(item.TotalStock) {
-			db.Model(&models.Item{}).Where("id = ?", transaction.ItemID).Update("status", "borrowed")
-		}
+		// ✅ FIX: Item status langsung "borrowed" (handover = barang fisik diserahkan)
+		db.Model(&models.Item{}).Where("id = ?", transaction.ItemID).Update("status", "borrowed")
 
 	} else if req.Action == "reject" {
 		// Jika Ditolak: Transaksi batal
 		transaction.Status = "rejected"
 
-		// Kalau OTS yang ditolak, balikin fisik barang ke 'available'
-		if !isBooking {
+		// ✅ FIX: Cek apakah ada transaksi aktif lain sebelum set "available"
+		var otherActive int64
+		db.Model(&models.Transaction{}).
+			Where("item_id = ? AND id != ?", transaction.ItemID, transaction.ID).
+			Where("status IN ?", []string{"pending", "approved", "borrowed"}).
+			Count(&otherActive)
+
+		if otherActive == 0 {
 			db.Model(&models.Item{}).Where("id = ?", transaction.ItemID).Update("status", "available")
 		}
 	} else {
