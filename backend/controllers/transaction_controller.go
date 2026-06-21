@@ -1,4 +1,4 @@
-﻿package controllers
+package controllers
 
 import (
 	// âœ… TAMBAHIN INI
@@ -117,6 +117,18 @@ func BorrowItem(c *gin.Context) {
 				Count(&activeNow)
 
 			if activeNow+1 >= int64(finalItem.TotalStock) {
+				tx.Model(&finalItem).Where("id = ?", itemID).Update("status", "reserved")
+			}
+		} else {
+			// ✅ FIX: BOOKING juga harus update status item ke "reserved"
+			// Biar muncul di filter "Menunggu ACC" di halaman user!
+			var activeBookings int64
+			tx.Model(&models.Transaction{}).
+				Where("item_id = ?", itemID).
+				Where("status IN ?", []string{"pending", "approved", "borrowed"}).
+				Count(&activeBookings)
+
+			if activeBookings+1 >= int64(finalItem.TotalStock) {
 				tx.Model(&finalItem).Where("id = ?", itemID).Update("status", "reserved")
 			}
 		}

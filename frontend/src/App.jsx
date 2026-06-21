@@ -1,4 +1,4 @@
-﻿import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { useState, useEffect } from 'react'
@@ -13,6 +13,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage'
 import AdminItemsPage from './pages/AdminItemsPage'
 import AdminTransactionsPage from './pages/AdminTransactionsPage'
 import AdminBorrowersPage from './pages/AdminBorrowersPage'
+import AdminBookingsPage from './pages/AdminBookingsPage'
 import BorrowFormPage from './pages/BorrowFormPage'
 import CheckStatusPage from './pages/CheckStatusPage'
 
@@ -106,8 +107,8 @@ function AppContent() {
 
   // Tentukan arah animasi
   useEffect(() => {
-    const adminPaths = ['/admin/dashboard', '/admin/items', '/admin/transactions', '/admin/borrowers']
-    const userPaths = ['/', '/items', '/how-to-borrow', '/borrow', '/cek-status'] // âœ… TAMBAHIN DISINI
+    const adminPaths = ['/admin/dashboard', '/admin/items', '/admin/transactions', '/admin/borrowers', '/admin/bookings']
+    const userPaths = ['/', '/items', '/how-to-borrow', '/borrow', '/cek-status'] // ✅ TAMBAHIN DISINI
     const currentPath = location.pathname
     const prevPathname = prevPath
     
@@ -162,6 +163,7 @@ function AppContent() {
               <Route path="/admin/dashboard" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit"><AdminDashboardPage /></motion.div>} />
               <Route path="/admin/items" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit"><AdminItemsPage /></motion.div>} />
               <Route path="/admin/transactions" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit"><AdminTransactionsPage /></motion.div>} />
+              <Route path="/admin/bookings" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit"><AdminBookingsPage /></motion.div>} />
               <Route path="/admin/borrowers" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit"><AdminBorrowersPage /></motion.div>} />
             </Routes>
           </AnimatePresence>

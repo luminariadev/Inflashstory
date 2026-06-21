@@ -179,7 +179,7 @@ func UpdateItemStatus(c *gin.Context) {
 	}
 
 	validStatuses := map[string]bool{
-		"available": true, "borrowed": true,
+		"available": true, "borrowed": true, "reserved": true,
 		"damaged": true, "maintenance": true, "lost": true,
 	}
 	if !validStatuses[req.Status] {
