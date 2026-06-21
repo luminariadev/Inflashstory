@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+﻿import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { useState, useEffect } from 'react'
@@ -12,12 +12,11 @@ import AdminLoginPage from './pages/AdminLoginPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import AdminItemsPage from './pages/AdminItemsPage'
 import AdminTransactionsPage from './pages/AdminTransactionsPage'
-import AdminBookingsPage from './pages/AdminBookingsPage'
 import AdminBorrowersPage from './pages/AdminBorrowersPage'
 import BorrowFormPage from './pages/BorrowFormPage'
 import CheckStatusPage from './pages/CheckStatusPage'
 
-// ✅ IMPORT BANNER PWA SAKTI KITA
+// âœ… IMPORT BANNER PWA SAKTI KITA
 import InstallPrompt from './components/InstallPrompt'
 
 // Animasi variants
@@ -107,8 +106,8 @@ function AppContent() {
 
   // Tentukan arah animasi
   useEffect(() => {
-    const adminPaths = ['/admin/dashboard', '/admin/items', '/admin/transactions', '/admin/bookings', '/admin/borrowers']
-    const userPaths = ['/', '/items', '/how-to-borrow', '/borrow', '/cek-status'] // ✅ TAMBAHIN DISINI
+    const adminPaths = ['/admin/dashboard', '/admin/items', '/admin/transactions', '/admin/borrowers']
+    const userPaths = ['/', '/items', '/how-to-borrow', '/borrow', '/cek-status'] // âœ… TAMBAHIN DISINI
     const currentPath = location.pathname
     const prevPathname = prevPath
     
@@ -163,7 +162,6 @@ function AppContent() {
               <Route path="/admin/dashboard" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit"><AdminDashboardPage /></motion.div>} />
               <Route path="/admin/items" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit"><AdminItemsPage /></motion.div>} />
               <Route path="/admin/transactions" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit"><AdminTransactionsPage /></motion.div>} />
-              <Route path="/admin/bookings" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit"><AdminBookingsPage /></motion.div>} />
               <Route path="/admin/borrowers" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit"><AdminBorrowersPage /></motion.div>} />
             </Routes>
           </AnimatePresence>
@@ -176,7 +174,7 @@ function AppContent() {
               <Route path="/items" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit" className="flex-1"><ItemListPage /></motion.div>} />
               <Route path="/how-to-borrow" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit" className="flex-1"><HowToBorrowPage /></motion.div>} />
               <Route path="/borrow" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit" className="flex-1"><BorrowFormPage /></motion.div>} />
-              {/* ✅ PINDAH KE SINI DAN KASIH ANIMASI */}
+              {/* âœ… PINDAH KE SINI DAN KASIH ANIMASI */}
               <Route path="/cek-status" element={<motion.div custom={direction} variants={pageVariants} initial="initial" animate="animate" exit="exit" className="flex-1"><CheckStatusPage /></motion.div>} />
             </Routes>
           </AnimatePresence>
@@ -198,7 +196,7 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      {/* ✅ BANNER PWA CUSTOM: Bakal nahan popup default Chrome & munculin UI elegan kita */}
+      {/* âœ… BANNER PWA CUSTOM: Bakal nahan popup default Chrome & munculin UI elegan kita */}
       <InstallPrompt /> 
       <AppContent />
     </Router>
