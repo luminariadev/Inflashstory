@@ -42,6 +42,8 @@ const HowToBorrowPage = () => {
     { icon: 'currency_exchange', text: 'Wajib mengganti barang dengan spesifikasi yang sama jika terjadi kerusakan fatal atau kehilangan.' },
     // ✅ TAMBAHAN ATURAN BOOKING HANGUS
     { icon: 'warning', text: 'Khusus jalur Booking: Jika terlambat mengambil barang lebih dari 2 Jam dari jadwal, booking OTOMATIS HANGUS.' },
+    // ✅ TAMBAHAN ATURAN PEMINJAMAN MANUAL
+    { icon: 'contact_support', text: 'Peminjaman Langsung (Manual): Jika Anda meminjam langsung ke Admin tanpa melalui aplikasi, Anda WAJIB membawa kartu identitas fisik (KTM/KTP) atau Surat Izin (jika barang mensyaratkan) untuk diserahkan dan ditahan oleh Admin sebagai jaminan selama masa peminjaman.' },
   ]
 
   const cardClass = isDark ? 'glass-card' : 'glass-card-light'
@@ -142,7 +144,7 @@ const HowToBorrowPage = () => {
               {rules.slice(4).map((rule, idx) => (
                 <li key={idx} className="flex gap-4 items-start">
                   <div className={`p-2 rounded-lg shrink-0 ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
-                    <Icon name={rule.icon} className={idx === 2 ? 'text-orange-500 text-xl' : `text-xl ${isDark ? 'text-primary' : 'text-primary/80'}`} />
+                    <Icon name={rule.icon} className={idx === 2 ? 'text-orange-500 text-xl' : idx === 3 ? 'text-blue-500 text-xl' : `text-xl ${isDark ? 'text-primary' : 'text-primary/80'}`} />
                   </div>
                   <p className={`text-sm leading-relaxed mt-1 ${textClass}`}>{rule.text}</p>
                 </li>

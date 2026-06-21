@@ -73,6 +73,19 @@ const ItemInfoModal = ({ isOpen, onClose, item, activeBookings = [], isDark = tr
           </div>
         </div>
 
+        {/* ✅ BADGE PERSYARATAN (KTP/SURAT) + ATURAN MAIN DI MODAL INFO */}
+        {((item.required_id && item.required_id !== 'none') || item.require_letter) && (
+          <div className={`p-3 rounded-xl border flex gap-3 items-start text-sm font-medium leading-relaxed bg-red-500/10 border-red-500/20 text-red-500 mt-4`}>
+            <Icon name="admin_panel_settings" className="text-xl shrink-0" />
+            <div>
+              <p className="font-bold mb-1">Syarat Peminjaman Wajib:</p>
+              <p className="text-xs">
+                Upload {item.required_id !== 'none' ? item.required_id.toUpperCase() : ''}{(item.required_id !== 'none' && item.require_letter) ? ' & ' : ''}{item.require_letter ? 'Surat Izin' : ''} (via Web) / Bawa & Titipkan Fisiknya (Jika Peminjaman Manual ke Admin).
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ✅ BOX JADWAL & EDUKASI STOK (MUNCUL JIKA ADA ANTREAN) */}
         {activeBookings.length > 0 && (
           <div className="space-y-3 mt-4">

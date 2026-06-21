@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import Icon from '../components/Icon'
 import API from '../api'
 import toast from 'react-hot-toast'
+import DatePicker, { registerLocale } from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
+import { id } from 'date-fns/locale'
+registerLocale('id', id)
 
 const AdminTransactionsPage = () => {
   const [isDark, setIsDark] = useState(true)
@@ -12,6 +16,21 @@ const AdminTransactionsPage = () => {
   const [confirmModal, setConfirmModal] = useState(null) 
   const [rejectReason, setRejectReason] = useState('') // ✅ STATE BARU: Alasan penolakan
   const [returnNotes, setReturnNotes] = useState('') // ✅ STATE BARU: Catatan pas barang dibalikin
+  
+  // ✅ STATE BARU: Modal Input Peminjaman Manual
+  const [showManualModal, setShowManualModal] = useState(false)
+  const [manualForm, setManualForm] = useState({
+    item_id: '',
+    borrower_name: '',
+    identity_no: '',
+    phone: '',
+    purpose: '',
+    type: 'ots',
+    borrow_date: null,
+    est_return_date: null
+  })
+  const [items, setItems] = useState([])
+  const [searchItem, setSearchItem] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const [txTypeFilter, setTxTypeFilter] = useState('all') 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false) 
@@ -118,6 +137,128 @@ const AdminTransactionsPage = () => {
     return () => observer.disconnect()
   }, [])
 
+  // ✅ FETCH ITEMS SAAT MODAL MANUAL DIBUKA
+  useEffect(() => {
+    if (showManualModal && items.length === 0) {
+      API.get('/items').then(res => {
+        setItems(res.data.data.filter(i => i.status === 'available'))
+      }).catch(err => {
+        toast.error('Gagal memuat daftar barang')
+      })
+    }
+  }, [showManualModal, items.length])
+
+  // ✅ LOGIKA SAKTI ANTI BENTROK JAM & HIGHLIGHT WARNA KHUSUS ADMIN
+  const getLocalDate = (dateString) => {
+    if (!dateString) return new Date()
+    return new Date(dateString)
+  }
+
+  // Ambil antrean aktif khusus untuk barang yang sedang dipilih di form manual
+  const activeBookings = transactions.filter(trx => 
+    trx.item?.id === parseInt(manualForm.item_id) && 
+    ['pending', 'approved', 'borrowed'].includes(trx.status)
+  )
+
+  const isTimeConflicting = (timeCheck) => {
+    const selectedItem = items.find(i => i.id.toString() === manualForm.item_id)
+    const overlapCount = activeBookings.filter(trx => {
+      const start = getLocalDate(trx.borrow_date)
+      const end = getLocalDate(trx.est_return_date)
+      return timeCheck >= start && timeCheck < end
+    }).length
+    return overlapCount >= (selectedItem?.total_stock || 1)
+  }
+
+  const getMaxReturnDate = () => {
+    // Kalau Booking: Maks 7 hari dari tgl ambil
+    // Kalau OTS: Maks 7 hari dari hari ini
+    const maxDays = 7
+    let baseDate = new Date()
+    
+    if (manualForm.type === 'booking' && manualForm.borrow_date) {
+      baseDate = manualForm.borrow_date
+    }
+
+    const defaultMax = new Date(baseDate.getTime() + maxDays * 24 * 60 * 60 * 1000)
+    
+    // Cek tembok bentrok stok
+    if (!manualForm.borrow_date && manualForm.type === 'booking') return defaultMax
+
+    const start = manualForm.type === 'ots' ? new Date().getTime() : manualForm.borrow_date.getTime()
+    const selectedItem = items.find(i => i.id.toString() === manualForm.item_id)
+    const totalStock = selectedItem?.total_stock || 1
+
+    const fullyBookedTimes = activeBookings
+      .map(trx => getLocalDate(trx.borrow_date).getTime())
+      .filter(trxStart => trxStart > start)
+      .filter(trxStart => {
+        const overlapCount = activeBookings.filter(b => {
+          const bStart = getLocalDate(b.borrow_date).getTime()
+          const bEnd = getLocalDate(b.est_return_date).getTime()
+          return trxStart >= bStart && trxStart < bEnd
+        }).length
+        return overlapCount >= totalStock
+      })
+
+    if (fullyBookedTimes.length > 0) {
+      const closestWall = Math.min(...fullyBookedTimes)
+      const closestWallDate = new Date(closestWall)
+      return closestWallDate < defaultMax ? closestWallDate : defaultMax
+    }
+
+    return defaultMax
+  }
+
+  const filterAvailableTimes = (time) => {
+    const selectedDate = new Date(time)
+    const hours = selectedDate.getHours()
+    
+    if (hours < 8 || hours >= 16) return false
+    if (isTimeConflicting(selectedDate)) return false
+
+    const startObj = manualForm.type === 'ots' ? new Date() : manualForm.borrow_date
+    if (startObj) {
+      const start = startObj.getTime()
+      const checkTime = selectedDate.getTime()
+      const selectedItem = items.find(i => i.id.toString() === manualForm.item_id)
+      const totalStock = selectedItem?.total_stock || 1
+      
+      const hasFullBlockInBetween = activeBookings.some(trx => {
+        const trxStart = getLocalDate(trx.borrow_date).getTime()
+        if (trxStart > start && trxStart < checkTime) {
+          const overlapCount = activeBookings.filter(b => {
+            const bStart = getLocalDate(b.borrow_date).getTime()
+            const bEnd = getLocalDate(b.est_return_date).getTime()
+            return trxStart >= bStart && trxStart < bEnd
+          }).length
+          return overlapCount >= totalStock
+        }
+        return false
+      })
+
+      if (hasFullBlockInBetween) return false 
+    }
+
+    return true
+  }
+
+  const getDayClassName = (date) => {
+    const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+    const bookingIndex = activeBookings.findIndex(trx => {
+      const startObj = getLocalDate(trx.borrow_date)
+      const endObj = getLocalDate(trx.est_return_date)
+      const start = new Date(startObj.getFullYear(), startObj.getMonth(), startObj.getDate()).getTime()
+      const end = new Date(endObj.getFullYear(), endObj.getMonth(), endObj.getDate()).getTime()
+      return checkDate >= start && checkDate <= end 
+    })
+
+    if (bookingIndex !== -1) {
+      return `has-booking-range-${(bookingIndex % 3) + 1}`
+    }
+    return undefined
+  }
+
   const fetchTransactions = async () => {
     try {
       const response = await API.get('/admin/transactions', {
@@ -145,6 +286,54 @@ const AdminTransactionsPage = () => {
       fetchTransactions()
     } catch (error) {
       toast.error(error.response?.data?.message || 'Gagal mengembalikan barang')
+    }
+  }
+
+  // ✅ FUNGSI BARU: Submit Manual Borrow
+  const handleManualSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const payload = {
+        ...manualForm,
+        item_id: parseInt(manualForm.item_id)
+      }
+
+      // Validasi durasi & format tanggal
+      if (payload.type === 'ots') {
+        if (!payload.est_return_date) {
+          toast.error('Estimasi kembali wajib diisi!')
+          return
+        }
+        payload.borrow_date = new Date().toISOString()
+      } else {
+        if (!payload.borrow_date || !payload.est_return_date) {
+          toast.error('Tanggal Peminjaman & Kembali wajib diisi untuk Booking!')
+          return
+        }
+        payload.borrow_date = new Date(payload.borrow_date).toISOString()
+      }
+
+      // Validasi Durasi 7 Hari Maksimal
+      const borrowDateObj = new Date(payload.borrow_date)
+      const returnDateObj = new Date(payload.est_return_date)
+      const diffTime = Math.abs(returnDateObj - borrowDateObj)
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      if (diffDays > 7) {
+        toast.error('Durasi maksimal peminjaman adalah 7 hari!')
+        return
+      }
+
+      payload.est_return_date = returnDateObj.toISOString()
+
+      await API.post('/admin/borrow/manual', payload, {
+        headers: { 'X-Admin-Token': 'admin-secret-key' }
+      })
+      toast.success('Peminjaman manual berhasil dicatat!')
+      setShowManualModal(false)
+      setManualForm({ item_id: '', borrower_name: '', identity_no: '', phone: '', purpose: '', type: 'ots', borrow_date: null, est_return_date: null })
+      fetchTransactions()
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Gagal mencatat peminjaman manual')
     }
   }
 
@@ -323,6 +512,9 @@ const AdminTransactionsPage = () => {
     : 'bg-gray-50 border-b border-gray-200'
   const thClass = `pb-3 pt-3 text-sm font-semibold px-4 ${titleClass}`
   const tdClass = `py-3 text-sm px-4`
+  const inputClass = isDark 
+    ? 'bg-[#1e1f23] border border-white/10 text-white placeholder:text-slate-500 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-3 w-full outline-none transition' 
+    : 'bg-gray-50 border border-gray-300 text-gray-800 placeholder:text-gray-400 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-3 w-full outline-none transition'
 
   const statusBadgeClass = (status) => {
     if (status === 'borrowed') return 'bg-blue-500/20 text-blue-600'
@@ -380,8 +572,38 @@ const AdminTransactionsPage = () => {
   // Cari option mana yang lagi aktif sekarang
   const currentOption = statusOptions.find(opt => opt.value === activeTab) || statusOptions[0]
 
+  // ✅ CEK BARANG YANG DIPILIH BUTUH JAMINAN ATAU ENGGAK
+  const selectedItem = items.find(i => i.id.toString() === manualForm.item_id)
+  const isRequireJaminan = selectedItem && (
+    (selectedItem.required_id && selectedItem.required_id !== 'none') || 
+    selectedItem.require_letter
+  )
+
   return (
     <div className="pb-12 space-y-6">
+      {/* ✅ INJEKSI CSS SUPER SAKTI UNTUK MENGHITAMKAN DATEPICKER */}
+      <style>{`
+        .react-datepicker-popper { z-index: 9999 !important; }
+        .react-datepicker { font-family: inherit !important; background-color: #1e1f23 !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 12px !important; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+        .react-datepicker__header { background-color: #121215 !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important; }
+        .react-datepicker__current-month, .react-datepicker-time__header { color: #fff !important; }
+        .react-datepicker__day-name { color: #888 !important; }
+        .react-datepicker__day { color: #ccc !important; border-radius: 6px !important; }
+        .react-datepicker__day:hover { background-color: rgba(99, 102, 241, 0.5) !important; color: white !important; }
+        .react-datepicker__day--selected, .react-datepicker__day--keyboard-selected { background-color: #6366f1 !important; color: white !important; font-weight: bold; }
+        .react-datepicker__day--disabled { color: #3f3f46 !important; text-decoration: line-through !important; cursor: not-allowed !important; background-color: transparent !important; }
+        .react-datepicker__day--disabled:hover { background-color: transparent !important; color: #3f3f46 !important; }
+        .has-booking-range-1 { background-color: rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; font-weight: bold; border-radius: 6px !important; } 
+        .has-booking-range-2 { background-color: rgba(6, 182, 212, 0.15) !important; color: #06b6d4 !important; font-weight: bold; border-radius: 6px !important; } 
+        .has-booking-range-3 { background-color: rgba(244, 63, 94, 0.15) !important; color: #f43f5e !important; font-weight: bold; border-radius: 6px !important; } 
+        .react-datepicker__time-container { border-left: 1px solid rgba(255,255,255,0.1) !important; }
+        .react-datepicker__time { background-color: #1e1f23 !important; }
+        .react-datepicker__time-list-item { color: #ccc !important; transition: all 0.2s; }
+        .react-datepicker__time-list-item:hover { background-color: rgba(99, 102, 241, 0.3) !important; color: white !important; }
+        .react-datepicker__time-list-item--selected { background-color: #6366f1 !important; color: white !important; font-weight: bold; }
+        .react-datepicker__time-list-item--disabled { color: #333 !important; cursor: not-allowed !important; text-decoration: line-through; }
+      `}</style>
+      
       {/* ✅ HEADER BARU: SEKARANG ADA TOMBOL EXPORT */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -389,13 +611,22 @@ const AdminTransactionsPage = () => {
           <p className={`text-sm mt-1 ${textClass}`}>Kelola dan pantau semua transaksi peminjaman</p>
         </div>
         
-        <button 
-          onClick={handleExportCSV} 
-          className="bg-green-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 hover:brightness-110 transition-all shadow-lg shadow-green-600/30 w-full sm:w-auto"
-        >
-          <Icon name="download" className="text-base" />
-          Export ke Excel
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <button 
+            onClick={() => setShowManualModal(true)} 
+            className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 hover:brightness-110 transition-all shadow-lg shadow-blue-600/30 w-full sm:w-auto"
+          >
+            <Icon name="add_circle" className="text-base" />
+            Input Peminjaman
+          </button>
+          <button 
+            onClick={handleExportCSV} 
+            className="bg-green-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 hover:brightness-110 transition-all shadow-lg shadow-green-600/30 w-full sm:w-auto"
+          >
+            <Icon name="download" className="text-base" />
+            Export ke Excel
+          </button>
+        </div>
       </div>
 
       {/* ✅ CONTAINER BARU BUAT BUNGKUS DUA FILTER SEKALIGUS */}
@@ -680,6 +911,172 @@ const AdminTransactionsPage = () => {
             ))}
           </div>
         </>
+      )}
+
+      {/* ✅ MODAL INPUT PEMINJAMAN MANUAL */}
+      {showManualModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto" onClick={() => setShowManualModal(false)}>
+          <div className={`${cardClass} max-w-md w-full p-6 rounded-2xl space-y-4 max-h-[90vh] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <h3 className={`text-xl font-bold ${titleClass}`}>Input Peminjaman Manual</h3>
+              <button onClick={() => setShowManualModal(false)} className={`p-2 rounded-lg transition ${isDark ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'}`}>
+                <Icon name="close" className="text-xl" />
+              </button>
+            </div>
+            <form onSubmit={handleManualSubmit} className="space-y-3">
+              <div>
+                <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>Pilih Barang</label>
+                <div className="space-y-2">
+                  <input type="text" placeholder="Cari nama atau kode barang..." value={searchItem} onChange={(e) => setSearchItem(e.target.value)} className={`w-full p-2.5 rounded-xl border outline-none text-sm ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-800'}`} />
+                  <select required value={manualForm.item_id} onChange={(e) => setManualForm({...manualForm, item_id: e.target.value})} className={`w-full p-2.5 rounded-xl border outline-none text-sm ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-800'}`}>
+                    <option value="" disabled>-- Pilih Barang Tersedia --</option>
+                    {items.filter(i => i.name.toLowerCase().includes(searchItem.toLowerCase()) || i.code.toLowerCase().includes(searchItem.toLowerCase())).map(item => (
+                      <option key={item.id} value={item.id}>[{item.code}] {item.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* ✅ WARNING DINAMIS JIKA BARANG BUTUH JAMINAN */}
+              {isRequireJaminan && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-3 rounded-xl text-xs font-medium leading-relaxed">
+                  <span className="font-bold block mb-0.5">⚠️ PERHATIAN: Barang ini mewajibkan jaminan!</span>
+                  Tahan fisik {selectedItem.required_id !== 'none' ? selectedItem.required_id.toUpperCase() : ''}{selectedItem.required_id !== 'none' && selectedItem.require_letter ? ' dan ' : ''}{selectedItem.require_letter ? 'Surat Izin' : ''} peminjam sebagai bukti sebelum menyerahkan barang.
+                </div>
+              )}
+
+              <div>
+                <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>Nama Peminjam</label>
+                <input type="text" required placeholder="Nama Lengkap" value={manualForm.borrower_name} onChange={(e) => setManualForm({...manualForm, borrower_name: e.target.value})} className={`w-full p-2.5 rounded-xl border outline-none text-sm ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-800'}`} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>NIM/NIP</label>
+                  <input type="text" required placeholder="Nomor Induk" value={manualForm.identity_no} onChange={(e) => setManualForm({...manualForm, identity_no: e.target.value})} className={`w-full p-2.5 rounded-xl border outline-none text-sm ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-800'}`} />
+                </div>
+                <div>
+                  <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>WhatsApp</label>
+                  <input type="text" required placeholder="08..." value={manualForm.phone} onChange={(e) => setManualForm({...manualForm, phone: e.target.value})} className={`w-full p-2.5 rounded-xl border outline-none text-sm ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-800'}`} />
+                </div>
+              </div>
+              {/* ✅ JENIS TRANSAKSI */}
+              <div>
+                <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>Jenis Transaksi</label>
+                <div className="flex gap-4 mt-2">
+                  <label className={`flex items-center gap-2 text-sm cursor-pointer ${titleClass}`}>
+                    <input type="radio" name="type" value="ots" checked={manualForm.type === 'ots'} onChange={(e) => setManualForm({...manualForm, type: e.target.value})} className="cursor-pointer" />
+                    OTS (Pinjam Langsung)
+                  </label>
+                  <label className={`flex items-center gap-2 text-sm cursor-pointer ${titleClass}`}>
+                    <input type="radio" name="type" value="booking" checked={manualForm.type === 'booking'} onChange={(e) => setManualForm({...manualForm, type: e.target.value})} className="cursor-pointer" />
+                    Booking (Reservasi)
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>Keperluan</label>
+                <input type="text" required placeholder="Keperluan pinjam" value={manualForm.purpose} onChange={(e) => setManualForm({...manualForm, purpose: e.target.value})} className={`w-full p-2.5 rounded-xl border outline-none text-sm ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-800'}`} />
+              </div>
+              
+              {/* ✅ TANGGAL PINJAM & KEMBALI DINAMIS PAKAI DATEPICKER SAKTI */}
+              {manualForm.type === 'booking' ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="relative">
+                    <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>Tgl & Jam Pinjam <span className="text-red-500">*</span></label>
+                    <DatePicker
+                      selected={manualForm.borrow_date}
+                      onChange={(date) => setManualForm({ ...manualForm, borrow_date: date, est_return_date: null })}
+                      showTimeSelect
+                      timeFormat="HH:mm"
+                      timeIntervals={30}
+                      timeCaption="Waktu"
+                      dateFormat="d MMMM yyyy, HH:mm"
+                      locale="id"
+                      minDate={new Date()}
+                      maxDate={new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)} // Booking max 14 hari
+                      filterTime={filterAvailableTimes}
+                      dayClassName={getDayClassName} 
+                      className={inputClass}
+                      placeholderText="Pilih tgl & jam"
+                      portalId="datepicker-portal"
+                      required
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>Estimasi Kembali <span className="text-red-500">*</span></label>
+                    <DatePicker
+                      selected={manualForm.est_return_date}
+                      onChange={(date) => setManualForm({ ...manualForm, est_return_date: date })}
+                      showTimeSelect
+                      timeFormat="HH:mm"
+                      timeIntervals={30}
+                      timeCaption="Waktu"
+                      dateFormat="d MMMM yyyy, HH:mm"
+                      locale="id"
+                      minDate={manualForm.borrow_date || new Date()}
+                      maxDate={getMaxReturnDate()} // Dinamis berdasar stok & durasi 7 hari
+                      filterTime={filterAvailableTimes}
+                      dayClassName={getDayClassName}
+                      className={inputClass}
+                      placeholderText="Pilih tgl & jam"
+                      disabled={!manualForm.borrow_date || !manualForm.item_id}
+                      portalId="datepicker-portal"
+                      required
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="relative">
+                    <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>Tgl & Jam Pinjam <span className="text-red-500">*</span></label>
+                    <DatePicker
+                      selected={new Date()}
+                      onChange={() => { }}
+                      showTimeSelect
+                      timeFormat="HH:mm"
+                      dateFormat="d MMMM yyyy, HH:mm"
+                      locale="id"
+                      className={`${inputClass} opacity-70 cursor-not-allowed`}
+                      disabled
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>Estimasi Kembali <span className="text-red-500">*</span></label>
+                    <DatePicker
+                      selected={manualForm.est_return_date}
+                      onChange={(date) => setManualForm({ ...manualForm, est_return_date: date })}
+                      showTimeSelect
+                      timeFormat="HH:mm"
+                      timeIntervals={30}
+                      timeCaption="Waktu"
+                      dateFormat="d MMMM yyyy, HH:mm"
+                      locale="id"
+                      minDate={new Date()}
+                      maxDate={getMaxReturnDate()} // Maks 7 hari dari hari ini
+                      filterTime={filterAvailableTimes}
+                      dayClassName={getDayClassName}
+                      className={inputClass}
+                      placeholderText="Pilih tgl & jam"
+                      disabled={!manualForm.item_id}
+                      portalId="datepicker-portal"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <div className={`text-[11px] space-y-1 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                <p className="flex items-center gap-1.5"><Icon name="schedule" className="text-[14px] text-blue-500" /> Wajib di jam operasional: 08:00 - 16:00 WIB.</p>
+                <p className="flex items-center gap-1.5"><Icon name="event_upcoming" className="text-[14px] text-orange-500" /> Tanggal <strong className="text-orange-500 bg-orange-500/10 px-1 rounded">Berwarna</strong> berarti ada jadwal terisi. Cek ketersediaan jam.</p>
+              </div>
+
+              <button type="submit" className="w-full bg-blue-600 text-white py-3 mt-4 rounded-xl font-bold text-sm hover:brightness-110 transition shadow-lg shadow-blue-600/20">
+                Simpan Peminjaman
+              </button>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Modal Return */}

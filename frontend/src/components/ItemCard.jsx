@@ -97,6 +97,18 @@ const ItemCard = ({ item, index, isDark = true }) => {
             <Icon name="location_on" className="text-sm" />
             <span>{item.location || 'Ruang Jurusan'}</span>
           </div>
+
+          {/* ✅ BADGE PERSYARATAN (KTP/SURAT) + ATURAN MAIN */}
+          {((item.required_id && item.required_id !== 'none') || item.require_letter) && (
+            <div className={`text-[10px] mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 leading-relaxed`}>
+              <div className="font-bold flex items-center gap-1 mb-0.5">
+                <Icon name="admin_panel_settings" className="text-[12px]"/> 
+                Syarat Wajib:
+              </div>
+              <span>Upload {item.required_id !== 'none' ? item.required_id.toUpperCase() : ''}{(item.required_id !== 'none' && item.require_letter) ? ' & ' : ''}{item.require_letter ? 'Surat Izin' : ''} (via Web) / Bawa & Titipkan Fisiknya (Jika Peminjaman Manual ke Admin)</span>
+            </div>
+          )}
+          
           
           {/* ✅ TAMPILAN SISA STOK DENGAN TRIGGER PSIKOLOGIS UX */}
           {availableStock > 0 ? (

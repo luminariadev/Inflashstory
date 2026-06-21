@@ -35,8 +35,8 @@ const ItemListPage = () => {
   // ✅ PASTIKAN LU NAMBAHIN IMPORT INI DI PALING ATAS FILE BARENG IMPORT REACT:
   // import toast from 'react-hot-toast'
 
-  const fetchItems = useCallback(async () => {
-    setLoading(true)
+  const fetchItems = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
     try {
       const response = await API.get('/items')
       setItems(response.data.data)
@@ -44,7 +44,7 @@ const ItemListPage = () => {
       console.error('Error fetching items:', error)
       
       // ✅ LOGIKA PWA OFFLINE: Kasih tau user kalau error ini karena ga ada internet
-      if (!navigator.onLine) {
+      if (!navigator.onLine && !isSilent) {
         import('react-hot-toast').then(({ default: toast }) => {
            toast.error("Kamu sedang offline! Gagal mengambil data terbaru.", { 
              id: 'offline-toast', // ✅ FIX DOBEL: Kunci unik biar notif nggak spam/numpuk!
@@ -54,12 +54,20 @@ const ItemListPage = () => {
         })
       }
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     fetchItems()
+
+    // ✅ IMPLEMENTASI SHORT POLLING (Real-Time Hack)
+    const intervalId = setInterval(() => {
+      fetchItems(true) // Silent fetch tanpa spinner
+    }, 3000)
+
+    // ✅ CEGAH MEMORY LEAK PAS PINDAH HALAMAN
+    return () => clearInterval(intervalId)
   }, [fetchItems])
 
   useEffect(() => {
