@@ -220,8 +220,46 @@ const BorrowFormPage = () => {
       return `${year}-${month}-${day}T${hours}:${minutes}`;
     }
 
+    // ✅ FST INTEGRATION: Proses Upload File secara paralel (biar cepat)
+    let finalSuratUrl = '';
+    let finalKtpUrl = '';
+
+    try {
+      const uploadPromises = [];
+
+      if (formData.attachment instanceof File) {
+        const suratData = new FormData();
+        suratData.append('file', formData.attachment);
+        suratData.append('type', 'surat');
+        uploadPromises.push(
+          API.post('/upload', suratData, { headers: { 'Content-Type': 'multipart/form-data' } })
+            .then(res => { finalSuratUrl = res.data.file_path })
+        );
+      }
+
+      if (formData.id_photo instanceof File) {
+        const ktpData = new FormData();
+        ktpData.append('file', formData.id_photo);
+        ktpData.append('type', 'ktp');
+        uploadPromises.push(
+          API.post('/upload', ktpData, { headers: { 'Content-Type': 'multipart/form-data' } })
+            .then(res => { finalKtpUrl = res.data.file_path })
+        );
+      }
+
+      await Promise.all(uploadPromises);
+    } catch (error) {
+      toast.error('Upload dokumen gagal: ' + (error.response?.data?.error || error.message));
+      setSubmitting(false);
+      return;
+    }
+
     const payload = {
       ...formData,
+      id_photo: '',
+      attachment: '',
+      surat_url: finalSuratUrl,
+      ktp_url: finalKtpUrl,
       start_date: formatToGo(formData.start_date),
       est_return_date: formatToGo(formData.est_return_date),
       type: '' // ✅ KOSONGKAN: Penanda ke Go kalau ini murni Scan OTS di tempat
@@ -507,7 +545,7 @@ const BorrowFormPage = () => {
                 <div className="space-y-1 text-center w-full">
                   {formData.id_photo ? (
                     <div className="flex flex-col items-center">
-                      <img src={formData.id_photo} alt="Preview ID" className="h-40 w-auto object-contain mb-3 rounded-lg border border-gray-500/30 shadow-md" />
+                      <img src={formData.id_photo instanceof File ? URL.createObjectURL(formData.id_photo) : formData.id_photo} alt="Preview ID" className="h-40 w-auto object-contain mb-3 rounded-lg border border-gray-500/30 shadow-md" />
                       <button type="button" onClick={() => setFormData({ ...formData, id_photo: '' })} className="text-sm px-4 py-1.5 bg-red-500/10 text-red-500 rounded-lg font-medium hover:bg-red-500/20 transition">Hapus Foto</button>
                     </div>
                   ) : (
@@ -524,9 +562,7 @@ const BorrowFormPage = () => {
                                 e.target.value = '';
                                 return;
                               }
-                              const reader = new FileReader();
-                              reader.onloadend = () => setFormData({ ...formData, id_photo: reader.result });
-                              reader.readAsDataURL(file); // Convert gambar ke Base64
+                              setFormData({ ...formData, id_photo: file });
                             }
                           }} />
                         </label>
@@ -551,7 +587,7 @@ const BorrowFormPage = () => {
                     <div className="flex flex-col items-center">
                       <div className="flex items-center gap-2 mb-3 px-4 py-2 bg-red-500/10 text-red-500 rounded-lg border border-red-500/20">
                         <Icon name="picture_as_pdf" />
-                        <span className="text-sm font-medium">Surat_Terlampir.pdf</span>
+                        <span className="text-sm font-medium">{formData.attachment instanceof File ? formData.attachment.name : 'Surat_Terlampir.pdf'}</span>
                       </div>
                       <button type="button" onClick={() => setFormData({ ...formData, attachment: '' })} className="text-sm px-4 py-1.5 bg-red-500/10 text-red-500 rounded-lg font-medium hover:bg-red-500/20 transition">Hapus File</button>
                     </div>
@@ -569,9 +605,7 @@ const BorrowFormPage = () => {
                                 e.target.value = '';
                                 return;
                               }
-                              const reader = new FileReader();
-                              reader.onloadend = () => setFormData({ ...formData, attachment: reader.result });
-                              reader.readAsDataURL(file); // Convert PDF ke Base64
+                              setFormData({ ...formData, attachment: file });
                             }
                           }} />
                         </label>

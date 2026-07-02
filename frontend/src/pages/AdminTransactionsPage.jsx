@@ -1210,33 +1210,35 @@ const AdminTransactionsPage = () => {
             </div>
             
             <div className="space-y-6">
-              {/* Cek Foto KTP / KTM */}
-              {(showAttachmentModal.borrower?.ktp_photo || showAttachmentModal.borrower?.ktm_photo) && (
+              {/* Cek Foto KTP / KTM (Termasuk Fallback Legacy Jika API belum json:"-") */}
+              {(showAttachmentModal.ktp_url || showAttachmentModal.borrower?.ktp_photo || showAttachmentModal.borrower?.ktm_photo) && (
                 <div>
                   <p className={`text-sm font-semibold mb-2 ${titleClass}`}>
-                    Foto Jaminan ({showAttachmentModal.borrower?.ktp_photo ? 'KTP' : 'KTM'})
+                    Foto Jaminan Identitas
                   </p>
                   <img 
-                    src={showAttachmentModal.borrower?.ktp_photo || showAttachmentModal.borrower?.ktm_photo} 
+                    src={showAttachmentModal.ktp_url ? `${API.defaults.baseURL.replace('/api', '')}/${showAttachmentModal.ktp_url}` : (showAttachmentModal.borrower?.ktp_photo || showAttachmentModal.borrower?.ktm_photo)} 
                     alt="Foto Jaminan" 
                     className="w-full rounded-xl border border-gray-500/30 shadow-md object-contain max-h-60 bg-gray-100 dark:bg-black/20"
                   />
                 </div>
               )}
 
-              {/* Cek File PDF Surat */}
-              {showAttachmentModal.attachment && (
+              {/* Cek File PDF Surat (Termasuk Fallback Legacy Jika API belum json:"-") */}
+              {(showAttachmentModal.surat_url || showAttachmentModal.attachment) && (
                 <div>
                   <p className={`text-sm font-semibold mb-2 ${titleClass}`}>Surat Izin Peminjaman</p>
                   <a 
-                    href={showAttachmentModal.attachment} 
+                    href={showAttachmentModal.surat_url ? `${API.defaults.baseURL.replace('/api', '')}/${showAttachmentModal.surat_url}` : showAttachmentModal.attachment} 
                     download={`Surat_Peminjaman_${showAttachmentModal.transaction_code}.pdf`}
+                    target="_blank"
+                    rel="noreferrer"
                     className="flex items-center gap-3 p-4 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 transition text-blue-600 dark:text-blue-400"
                   >
                     <Icon name="picture_as_pdf" className="text-3xl" />
                     <div>
-                      <p className="font-medium text-sm">Unduh Surat PDF</p>
-                      <p className="text-xs opacity-80">Klik untuk menyimpan file ke perangkat</p>
+                      <p className="font-medium text-sm">Unduh / Lihat Surat PDF</p>
+                      <p className="text-xs opacity-80">Klik untuk membuka file di tab baru / simpan ke perangkat</p>
                     </div>
                   </a>
                 </div>

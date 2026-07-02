@@ -74,13 +74,19 @@ func BorrowItem(c *gin.Context) {
 		}
 
 		// C. Validasi Surat Pengantar & Jaminan ID
-		if finalItem.RequireLetter && req.Attachment == "" {
-			return errors.New("Surat peminjaman (PDF) wajib diunggah untuk barang ini!")
-		}
-		if finalItem.RequiredID == "ktm" && req.IdPhoto == "" {
-			return errors.New("Foto KTM wajib diunggah!")
-		} else if finalItem.RequiredID == "ktp" && req.IdPhoto == "" {
-			return errors.New("Foto KTP wajib diunggah!")
+		if finalItem.CategoryType == "Ruangan" || finalItem.RequireLetter {
+			if req.SuratURL == "" {
+				return errors.New("Surat permohonan wajib diunggah!")
+			}
+			if req.KtpURL == "" {
+				return errors.New("Foto identitas (KTP/KTM) wajib diunggah!")
+			}
+		} else {
+			if finalItem.RequiredID == "ktm" && req.KtpURL == "" {
+				return errors.New("Foto KTM wajib diunggah!")
+			} else if finalItem.RequiredID == "ktp" && req.KtpURL == "" {
+				return errors.New("Foto KTP wajib diunggah!")
+			}
 		}
 
 		// D. Upsert Data Borrower
@@ -94,11 +100,6 @@ func BorrowItem(c *gin.Context) {
 		borrower.Email = req.Email
 		borrower.UpdatedAt = time.Now()
 
-		if finalItem.RequiredID == "ktm" {
-			borrower.KTMPhoto = req.IdPhoto
-		} else if finalItem.RequiredID == "ktp" {
-			borrower.KTPPhoto = req.IdPhoto
-		}
 
 		if result.Error != nil {
 			borrower.IdentityNo = req.IdentityNo
@@ -145,7 +146,6 @@ func BorrowItem(c *gin.Context) {
 			Status:          "pending",
 			Notes:           req.Notes,
 			IsManual:        false,
-			Attachment:      req.Attachment,
 			SuratURL:        req.SuratURL, // ✅ FST INTEGRATION: Map SuratURL
 			KtpURL:          req.KtpURL,   // ✅ FST INTEGRATION: Map KtpURL
 			CreatedAt:       time.Now(),

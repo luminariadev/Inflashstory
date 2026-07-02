@@ -35,8 +35,8 @@ type Borrower struct {
 	Class        string    `gorm:"size:50" json:"class"`
 	Phone        string    `gorm:"size:15" json:"phone"`
 	Email        string    `gorm:"size:100" json:"email"`
-	KTMPhoto     string    `gorm:"type:longtext" json:"ktm_photo"` // foto KTM Base64
-	KTPPhoto     string    `gorm:"type:longtext" json:"ktp_photo"` // foto KTP Base64
+	KTMPhoto     string    `gorm:"type:longtext" json:"-"` // foto KTM Base64 (Legacy Hidden)
+	KTPPhoto     string    `gorm:"type:longtext" json:"-"` // foto KTP Base64 (Legacy Hidden)
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
@@ -57,7 +57,7 @@ type Transaction struct {
 	AdminID          uint       `json:"admin_id"`                                     // admin yang mencatat (0 = otomatis dari scan QR)
 	Notes            string     `gorm:"type:text" json:"notes"`
 	IsManual         bool       `gorm:"default:false" json:"is_manual"`  // true = input manual admin (backup)
-	Attachment       string     `gorm:"type:longtext" json:"attachment"` // File surat PDF (Base64) - Tetap ada untuk legacy fallback
+	Attachment       string     `gorm:"type:longtext" json:"-"` // File surat PDF (Legacy Hidden)
 	SuratURL         string     `gorm:"size:255" json:"surat_url"`       // ✅ FST INTEGRATION: Path file surat permohonan (Upload)
 	KtpURL           string     `gorm:"size:255" json:"ktp_url"`         // ✅ FST INTEGRATION: Path file gambar KTP (Upload)
 	CreatedAt        time.Time  `json:"created_at"`
@@ -114,8 +114,7 @@ type BorrowRequest struct {
 	StartDate        string `json:"start_date"`                         // ✅ BARU: Waktu Pengambilan dari form datetime
 	EstReturnDateStr string `json:"est_return_date" binding:"required"` // ✅ UPDATE: Sekarang nampung datetime juga
 	Notes            string `json:"notes"`
-	IdPhoto          string `json:"id_photo"`
-	Attachment       string `json:"attachment"`
+
 	SuratURL         string `json:"surat_url"`
 	KtpURL           string `json:"ktp_url"`
 }
