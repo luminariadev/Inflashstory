@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
 	"log"
@@ -84,11 +84,15 @@ func main() {
 	migrateDatabase()
 	seedDatabase()
 
-	// âœ… NYALAIN MESIN CRON AUTO-CANCEL
+	// ✅ NYALAIN MESIN CRON AUTO-CANCEL
 	db := config.GetDB()
 	utils.StartAutoCancelCron(db)
+	utils.InitCronJobs(db) // ✅ CRON BOOKING ANTI-GHOSTING
 
 	r := gin.Default()
+
+	// ✅ FST INTEGRATION: Serve static files for uploads
+	r.Static("/uploads", "./uploads")
 
 	// Middleware
 	r.Use(middleware.CORS())

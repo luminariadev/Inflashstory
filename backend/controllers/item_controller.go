@@ -57,6 +57,22 @@ func GetItems(c *gin.Context) {
 	})
 }
 
+// ItemRequest - DTO for Create and Update Item
+type ItemRequest struct {
+	Name          string `json:"name" binding:"required"`
+	Code          string `json:"code"`
+	Category      string `json:"category"`
+	CategoryType  string `json:"category_type"` // ✅ Pastikan ada di DTO
+	Location      string `json:"location"`
+	Description   string `json:"description"`
+	Status        string `json:"status"`
+	Condition     string `json:"condition"`
+	RequiredID    string `json:"required_id"`
+	RequireLetter bool   `json:"require_letter"`
+	ImageURL      string `json:"image_url"`
+	TotalStock    int    `json:"total_stock"`
+}
+
 // GetItem - Get single item
 func GetItem(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
@@ -80,14 +96,30 @@ func GetItem(c *gin.Context) {
 // CreateItem - Create new item (admin only)
 func CreateItem(c *gin.Context) {
 	db := c.MustGet("db").(*gorm.DB)
-	var item models.Item
+	var req ItemRequest
 
-	if err := c.ShouldBindJSON(&item); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
 			"message": err.Error(),
 		})
 		return
+	}
+
+	// ✅ Explicit Mapping to models.Item
+	item := models.Item{
+		Name:          req.Name,
+		Code:          req.Code,
+		Category:      req.Category,
+		CategoryType:  req.CategoryType,
+		Location:      req.Location,
+		Description:   req.Description,
+		Status:        req.Status,
+		Condition:     req.Condition,
+		RequiredID:    req.RequiredID,
+		RequireLetter: req.RequireLetter,
+		ImageURL:      req.ImageURL,
+		TotalStock:    req.TotalStock,
 	}
 
 	if item.Code == "" {
@@ -101,13 +133,16 @@ func CreateItem(c *gin.Context) {
 	if item.Condition == "" {
 		item.Condition = "good"
 	}
+	if item.CategoryType == "" {
+		item.CategoryType = "Barang" // default
+	}
 
 	// ✅ BARU: Set default stok ke 1 kalau Admin masukin 0 atau lupa ngisi
 	if item.TotalStock <= 0 {
 		item.TotalStock = 1
 	}
 
-	// ImageURL sudah otomatis terisi dari JSON
+	// ImageURL sudah otomatis terisi dari JSON mapping
 
 	if err := db.Create(&item).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -137,8 +172,8 @@ func UpdateItem(c *gin.Context) {
 		return
 	}
 
-	var updates models.Item
-	if err := c.ShouldBindJSON(&updates); err != nil {
+	var req ItemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
 			"message": err.Error(),
@@ -146,7 +181,23 @@ func UpdateItem(c *gin.Context) {
 		return
 	}
 
-	// Update fields (termasuk ImageURL)
+	// ✅ Explicit mapping dari DTO
+	updates := map[string]interface{}{
+		"name":           req.Name,
+		"code":           req.Code,
+		"category":       req.Category,
+		"category_type":  req.CategoryType,
+		"location":       req.Location,
+		"description":    req.Description,
+		"status":         req.Status,
+		"condition":      req.Condition,
+		"required_id":    req.RequiredID,
+		"require_letter": req.RequireLetter,
+		"image_url":      req.ImageURL,
+		"total_stock":    req.TotalStock,
+	}
+
+	// Update fields (menggunakan map memastikan zero-value update jika diperlukan)
 	db.Model(&item).Updates(updates)
 
 	c.JSON(http.StatusOK, gin.H{

@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"inventory-api/models"
@@ -73,6 +75,15 @@ func CreateBooking(c *gin.Context) {
 		return
 	}
 
+	// Parse start date jika ada, default ke time.Now()
+	startDate := time.Now()
+	if req.StartDateStr != "" {
+		parsedStart, err := utils.ParseDate(req.StartDateStr)
+		if err == nil {
+			startDate = parsedStart
+		}
+	}
+
 	// ✅ Validasi tanggal tidak boleh kurang dari hari ini
 	if estReturnDate.Before(time.Now()) {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -89,9 +100,12 @@ func CreateBooking(c *gin.Context) {
 		BorrowerID:  borrower.ID,
 		Purpose:     req.Purpose,
 		BookingDate: time.Now(),
-		ExpiryDate:  time.Now().Add(24 * time.Hour),
+		StartDate:   startDate, // ✅ Added start_date mapping
+		ExpiryDate:  startDate.Add(24 * time.Hour), // Expire dari start_date
 		Status:      "pending",
 		Notes:       req.Notes,
+		SuratURL:    req.SuratURL, // ✅ FST INTEGRATION: Map document URL
+		KtpURL:      req.KtpURL,   // ✅ FST INTEGRATION: Map document URL
 	}
 
 	if err := db.Create(&booking).Error; err != nil {
@@ -201,6 +215,17 @@ func ApproveBooking(c *gin.Context) {
 	if req.Notes != "" {
 		booking.Notes = req.Notes
 	}
+
+	// ✅ CLEAN UP STORAGE: Jika ditolak, hapus file dokumen secara fisik
+	if req.Status == "rejected" {
+		if booking.SuratURL != "" {
+			_ = os.Remove("." + booking.SuratURL) // asumsi URL berawal dari /uploads/...
+		}
+		if booking.KtpURL != "" {
+			_ = os.Remove("." + booking.KtpURL)
+		}
+	}
+
 	now := time.Now()
 	booking.ApprovedAt = &now
 	booking.UpdatedAt = time.Now()

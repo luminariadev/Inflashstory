@@ -17,6 +17,7 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
   
   // ✅ STATE BARU: Buat nyimpen data tiket pas sukses booking
   const [successTicket, setSuccessTicket] = useState(null) 
+  const [isAgreed, setIsAgreed] = useState(false)
 
   const [formData, setFormData] = useState({
     borrower_name: '',
@@ -176,13 +177,16 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
       return
     }
 
-    if (item?.require_letter && !formData.attachment) {
-      toast.error('Surat peminjaman (PDF) wajib diunggah!')
-      return
-    }
-    if (item?.required_id && item.required_id !== 'none' && !formData.id_photo) {
-      toast.error(`Foto ${item.required_id.toUpperCase()} wajib diunggah!`)
-      return
+    const isRuanganOrRequireLetter = item?.category_type === 'Ruangan' || item?.require_letter;
+    if (isRuanganOrRequireLetter) {
+      if (!formData.attachment) {
+        toast.error('Surat permohonan (PDF) wajib diunggah!')
+        return
+      }
+      if (!formData.id_photo) {
+        toast.error('Foto KTP wajib diunggah!')
+        return
+      }
     }
 
     const diffTime = Math.abs(formData.est_return_date - formData.start_date)
@@ -193,6 +197,40 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
     }
 
     setSubmitting(true)
+
+    // ✅ FST INTEGRATION: Proses Upload File secara paralel (biar cepat)
+    let finalSuratUrl = '';
+    let finalKtpUrl = '';
+
+    try {
+      const uploadPromises = [];
+
+      if (formData.attachment instanceof File) {
+        const suratData = new FormData();
+        suratData.append('file', formData.attachment);
+        suratData.append('type', 'surat');
+        uploadPromises.push(
+          API.post('/upload', suratData, { headers: { 'Content-Type': 'multipart/form-data' } })
+            .then(res => { finalSuratUrl = res.data.file_path })
+        );
+      }
+
+      if (formData.id_photo instanceof File) {
+        const ktpData = new FormData();
+        ktpData.append('file', formData.id_photo);
+        ktpData.append('type', 'ktp');
+        uploadPromises.push(
+          API.post('/upload', ktpData, { headers: { 'Content-Type': 'multipart/form-data' } })
+            .then(res => { finalKtpUrl = res.data.file_path })
+        );
+      }
+
+      await Promise.all(uploadPromises);
+    } catch (error) {
+      toast.error('Upload dokumen gagal: ' + (error.response?.data?.error || error.message));
+      setSubmitting(false);
+      return;
+    }
 
     // ✅ FIX: Kirim tanggal murni sesuai yang dipilih, tanpa ngubah zona waktu!
     const formatToGo = (dateObj) => {
@@ -206,9 +244,13 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
     
     const payload = {
       ...formData,
+      id_photo: '', // Kosongkan base64 lama
+      attachment: '', // Kosongkan base64 lama
       start_date: formatToGo(formData.start_date),
       est_return_date: formatToGo(formData.est_return_date),
-      type: 'booking'
+      type: 'booking',
+      surat_url: finalSuratUrl,
+      ktp_url: finalKtpUrl
     }
     
     try {
@@ -478,35 +520,38 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
-                {item?.required_id && item.required_id.toLowerCase() !== 'none' && item.required_id.trim() !== '' && (
+              {/* ✅ FST INTEGRATION: Input Dokumen KTP & Surat Permohonan */}
+              {(item?.category_type === 'Ruangan' || item?.require_letter) && (
+                <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label className={labelClass}>Upload {item.required_id.toUpperCase()} <span className="text-red-500">*</span></label>
-                    <input type="file" accept="image/*" required onChange={(e) => {
+                    <label className={labelClass}>Upload KTP (JPG/PNG) <span className="text-red-500">*</span></label>
+                    <input type="file" accept="image/jpeg, image/png, image/jpg" required onChange={(e) => {
                         const file = e.target.files[0];
-                        if (file && file.size < 2*1024*1024) {
-                          const r = new FileReader();
-                          r.onloadend = () => setFormData({...formData, id_photo: r.result});
-                          r.readAsDataURL(file);
-                        } else { toast.error('Maks 2MB'); e.target.value=''; }
+                        if (file && file.size <= 5*1024*1024) {
+                          setFormData({...formData, id_photo: file});
+                        } else { toast.error('Maks 5MB dan harus format gambar'); e.target.value=''; }
                       }} className={`w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 ${isDark ? 'text-slate-300' : 'text-gray-600'}`} />
                   </div>
-                )}
 
-                {item?.require_letter && (
                   <div>
                     <label className={labelClass}>Upload Surat PDF <span className="text-red-500">*</span></label>
-                    <input type="file" accept="application/pdf" required onChange={(e) => {
+                    <a 
+                      href="/assets/Template_Surat_FST.docx" 
+                      download 
+                      className="inline-flex items-center gap-1 mb-3 text-xs font-medium text-primary hover:text-blue-500 hover:underline transition"
+                    >
+                      <Icon name="download" className="text-[14px]" /> 
+                      Unduh Template Surat
+                    </a>
+                    <input type="file" accept=".pdf" required onChange={(e) => {
                         const file = e.target.files[0];
-                        if (file && file.size < 3*1024*1024) {
-                          const r = new FileReader();
-                          r.onloadend = () => setFormData({...formData, attachment: r.result});
-                          r.readAsDataURL(file);
-                        } else { toast.error('Maks 3MB'); e.target.value=''; }
+                        if (file && file.size <= 5*1024*1024) {
+                          setFormData({...formData, attachment: file});
+                        } else { toast.error('Maks 5MB dan harus format PDF'); e.target.value=''; }
                       }} className={`w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-500/10 file:text-red-500 hover:file:bg-red-500/20 ${isDark ? 'text-slate-300' : 'text-gray-600'}`} />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               <div>
                 <label className={labelClass}>Catatan Tambahan (Opsional)</label>
@@ -515,9 +560,17 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
 
               <div className="pt-2 border-t border-white/10 mt-6 pt-4">
                 <label className="flex items-start gap-3 cursor-pointer group">
-                  <input type="checkbox" required className="mt-1 w-4 h-4 cursor-pointer" />
+                  <input 
+                    type="checkbox" 
+                    required 
+                    checked={isAgreed}
+                    onChange={(e) => setIsAgreed(e.target.checked)}
+                    className="mt-1 w-4 h-4 cursor-pointer" 
+                  />
                   <span className={`text-sm leading-relaxed select-none ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>
-                    Saya menjamin data ini benar. Jika lewat dari jam pengambilan, booking hangus.
+                    {item?.category_type === 'Ruangan'
+                      ? "Saya setuju dengan Syarat & Ketentuan peminjaman ruangan, termasuk mematuhi batas jam operasional (maksimal pukul 21.00 WIB) dan DILARANG KERAS menempelkan spanduk fisik pada layar Videotron."
+                      : "Saya setuju dengan Syarat & Ketentuan peminjaman inventaris dan bersedia menjaga barang dengan baik."}
                   </span>
                 </label>
               </div>
@@ -526,7 +579,7 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
                 <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-xl font-medium text-sm transition bg-white/5 hover:bg-white/10 text-white">
                   Batal
                 </button>
-                <button type="submit" disabled={submitting} className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm shadow-lg hover:brightness-110 transition disabled:opacity-50">
+                <button type="submit" disabled={submitting || !isAgreed} className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm shadow-lg hover:brightness-110 transition disabled:opacity-50">
                   {submitting ? 'Memproses...' : 'Booking Sekarang'}
                 </button>
               </div>

@@ -27,7 +27,9 @@ const AdminTransactionsPage = () => {
     purpose: '',
     type: 'ots',
     borrow_date: null,
-    est_return_date: null
+    est_return_date: null,
+    id_photo: null,
+    attachment: null
   })
   const [items, setItems] = useState([])
   const [searchItem, setSearchItem] = useState('')
@@ -325,12 +327,50 @@ const AdminTransactionsPage = () => {
 
       payload.est_return_date = returnDateObj.toISOString()
 
+      // ✅ FST INTEGRATION: Proses Upload File secara paralel sebelum kirim data
+      let finalSuratUrl = '';
+      let finalKtpUrl = '';
+
+      try {
+        const uploadPromises = [];
+
+        if (manualForm.attachment instanceof File) {
+          const suratData = new FormData();
+          suratData.append('file', manualForm.attachment);
+          suratData.append('type', 'surat');
+          uploadPromises.push(
+            API.post('/upload', suratData, { headers: { 'Content-Type': 'multipart/form-data' } })
+              .then(res => { finalSuratUrl = res.data.file_path })
+          );
+        }
+
+        if (manualForm.id_photo instanceof File) {
+          const ktpData = new FormData();
+          ktpData.append('file', manualForm.id_photo);
+          ktpData.append('type', 'ktp');
+          uploadPromises.push(
+            API.post('/upload', ktpData, { headers: { 'Content-Type': 'multipart/form-data' } })
+              .then(res => { finalKtpUrl = res.data.file_path })
+          );
+        }
+
+        await Promise.all(uploadPromises);
+      } catch (error) {
+        toast.error('Upload dokumen gagal: ' + (error.response?.data?.error || error.message));
+        return;
+      }
+
+      payload.surat_url = finalSuratUrl;
+      payload.ktp_url = finalKtpUrl;
+      delete payload.attachment;
+      delete payload.id_photo;
+
       await API.post('/admin/borrow/manual', payload, {
         headers: { 'X-Admin-Token': 'admin-secret-key' }
       })
       toast.success('Peminjaman manual berhasil dicatat!')
       setShowManualModal(false)
-      setManualForm({ item_id: '', borrower_name: '', identity_no: '', phone: '', purpose: '', type: 'ots', borrow_date: null, est_return_date: null })
+      setManualForm({ item_id: '', borrower_name: '', identity_no: '', phone: '', purpose: '', type: 'ots', borrow_date: null, est_return_date: null, id_photo: null, attachment: null })
       fetchTransactions()
     } catch (error) {
       toast.error(error.response?.data?.message || 'Gagal mencatat peminjaman manual')
@@ -761,7 +801,21 @@ const AdminTransactionsPage = () => {
                         </p>
                       </td>
 
-                      <td className={`${tdClass} ${textClass}`}>{trx.borrower?.name || '-'}</td>
+                      <td className={`${tdClass} ${textClass}`}>
+                        <p className={`${titleClass} font-medium`}>{trx.borrower?.name || '-'}</p>
+                        <div className="flex flex-col gap-1 mt-1.5">
+                          {trx.surat_url && (
+                            <a href={`${API.defaults.baseURL.replace('/api', '')}${trx.surat_url}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-500 hover:underline flex items-center gap-1 w-max">
+                              <Icon name="description" className="text-[12px]" /> Lihat Surat Permohonan
+                            </a>
+                          )}
+                          {trx.ktp_url && (
+                            <a href={`${API.defaults.baseURL.replace('/api', '')}${trx.ktp_url}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-500 hover:underline flex items-center gap-1 w-max">
+                              <Icon name="badge" className="text-[12px]" /> Lihat KTP
+                            </a>
+                          )}
+                        </div>
+                      </td>
                       <td className={`${tdClass} ${textClass}`}>{formatDateTime(trx.borrow_date)}</td>
                       <td className={`${tdClass} ${textClass}`}>{formatDateTime(trx.est_return_date)}</td>
                       
@@ -868,6 +922,18 @@ const AdminTransactionsPage = () => {
                     <div>
                       <p className={`text-xs ${textClass} mb-0.5`}>Peminjam</p>
                       <p className={`text-sm font-medium ${titleClass}`}>{trx.borrower?.name || '-'}</p>
+                      <div className="flex flex-col gap-1 mt-1">
+                        {trx.surat_url && (
+                          <a href={`${API.defaults.baseURL.replace('/api', '')}${trx.surat_url}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline flex items-center gap-1">
+                            <Icon name="description" className="text-[12px]" /> Lihat Surat
+                          </a>
+                        )}
+                        {trx.ktp_url && (
+                          <a href={`${API.defaults.baseURL.replace('/api', '')}${trx.ktp_url}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline flex items-center gap-1">
+                            <Icon name="badge" className="text-[12px]" /> Lihat KTP
+                          </a>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <p className={`text-xs ${textClass} mb-0.5`}>Jalur</p>
@@ -977,6 +1043,18 @@ const AdminTransactionsPage = () => {
               <div>
                 <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>Keperluan</label>
                 <input type="text" required placeholder="Keperluan pinjam" value={manualForm.purpose} onChange={(e) => setManualForm({...manualForm, purpose: e.target.value})} className={`w-full p-2.5 rounded-xl border outline-none text-sm ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-800'}`} />
+              </div>
+              
+              {/* ✅ FORM INPUT FILE (Opsional) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>Surat Permohonan <span className="text-gray-500 font-normal">(Opsional)</span></label>
+                  <input type="file" accept=".pdf" onChange={(e) => setManualForm({...manualForm, attachment: e.target.files[0]})} className={`w-full p-2 rounded-xl border outline-none text-sm file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-800'}`} />
+                </div>
+                <div>
+                  <label className={`block text-xs font-semibold mb-1 ${titleClass}`}>Foto KTP / KTM <span className="text-gray-500 font-normal">(Opsional)</span></label>
+                  <input type="file" accept="image/*" onChange={(e) => setManualForm({...manualForm, id_photo: e.target.files[0]})} className={`w-full p-2 rounded-xl border outline-none text-sm file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-50 border-gray-200 text-gray-800'}`} />
+                </div>
               </div>
               
               {/* ✅ TANGGAL PINJAM & KEMBALI DINAMIS PAKAI DATEPICKER SAKTI */}

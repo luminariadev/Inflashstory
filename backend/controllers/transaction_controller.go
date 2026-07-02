@@ -1,9 +1,10 @@
 package controllers
 
 import (
-	// âœ… TAMBAHIN INI
+	// ✅ TAMBAHIN INI
 	"errors"
 	"net/http"
+	"os"
 	"time"
 
 	"inventory-api/models"
@@ -145,6 +146,8 @@ func BorrowItem(c *gin.Context) {
 			Notes:           req.Notes,
 			IsManual:        false,
 			Attachment:      req.Attachment,
+			SuratURL:        req.SuratURL, // ✅ FST INTEGRATION: Map SuratURL
+			KtpURL:          req.KtpURL,   // ✅ FST INTEGRATION: Map KtpURL
 			CreatedAt:       time.Now(),
 			UpdatedAt:       time.Now(),
 		}
@@ -258,6 +261,8 @@ func ManualBorrowItem(c *gin.Context) {
 		EstReturnDate:   estReturnDate,
 		Status:          "borrowed",
 		Notes:           req.Notes,
+		SuratURL:        req.SuratURL,
+		KtpURL:          req.KtpURL,
 		IsManual:        true,
 		CreatedAt:       time.Now(),
 		UpdatedAt:       time.Now(),
@@ -305,6 +310,17 @@ func ReturnItem(c *gin.Context) {
 		transaction.Notes = req.Notes
 	}
 	transaction.UpdatedAt = time.Now()
+
+	// --- AUTO CLEAN-UP TRANSAKSI RETURNED ---
+	if transaction.SuratURL != "" {
+		_ = os.Remove("." + transaction.SuratURL) // Hapus file fisik (Abaikan error jika file tidak ada)
+		transaction.SuratURL = ""                 // Kosongkan database link
+	}
+	if transaction.KtpURL != "" {
+		_ = os.Remove("." + transaction.KtpURL) // Hapus file fisik (Abaikan error jika file tidak ada)
+		transaction.KtpURL = ""                 // Kosongkan database link
+	}
+	// ----------------------------------------
 
 	db.Save(&transaction)
 

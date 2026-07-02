@@ -28,6 +28,9 @@ func SetupRoutes(r *gin.Engine) {
 		// ✅ FITUR BARU: Cek Status Peminjaman Mahasiswa (Public)
 		api.GET("/transactions/status", controllers.GetTransactionsByNIM)
 
+		// ✅ FST INTEGRATION: Endpoint Upload File (Surat & KTP)
+		api.POST("/upload", controllers.UploadDocument)
+
 		// Stats (public - untuk info website)
 		api.GET("/stats", controllers.GetStats)
 
@@ -59,7 +62,7 @@ func SetupRoutes(r *gin.Engine) {
 		admin.GET("/transactions/active", controllers.GetActiveTransactions)
 		admin.GET("/transactions/:id", controllers.GetTransactionByID)
 		admin.GET("/transactions/overdue", controllers.GetOverdueTransactions)
-		admin.POST("/transactions/:id/approve", controllers.ApproveTransaction)
+		admin.POST("/transactions/:id/approve", middleware.RequireSuperAdmin(), controllers.ApproveTransaction) // ✅ SUPER ADMIN ONLY
 
 		// Borrowers
 		admin.GET("/borrowers", controllers.GetBorrowers)
@@ -67,7 +70,7 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Bookings management (fitur lanjutan)
 		admin.GET("/bookings", controllers.GetBookings)
-		admin.PUT("/bookings/:id/approve", controllers.ApproveBooking)
+		admin.PUT("/bookings/:id/approve", middleware.RequireSuperAdmin(), controllers.ApproveBooking) // ✅ SUPER ADMIN ONLY
 		admin.GET("/bookings/check-expired", controllers.CheckExpiredBookings)
 
 		// Stats detail

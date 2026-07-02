@@ -12,7 +12,7 @@ const AdminItemsPage = () => {
   const [selectedImage, setSelectedImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [formData, setFormData] = useState({
-    name: '', code: '', category: '', location: '', description: '', status: 'available', condition: 'good', required_id: 'none', require_letter: false, image_url: '',
+    name: '', code: '', category: '', category_type: 'Barang', location: '', description: '', status: 'available', condition: 'good', required_id: 'none', require_letter: false, image_url: '',
     total_stock: 1 // ✅ SET DEFAULT STOK 1
   })
 
@@ -66,7 +66,11 @@ const AdminItemsPage = () => {
       imageUrl = imagePreview
     }
     
-    const submitData = { ...formData, image_url: imageUrl }
+    const submitData = { 
+      ...formData, 
+      category_type: formData.category_type, // ✅ Explicitly include to ensure payload integrity
+      image_url: imageUrl 
+    }
     
     try {
       if (editingItem) {
@@ -80,7 +84,7 @@ const AdminItemsPage = () => {
       setEditingItem(null)
       setSelectedImage(null)
       setImagePreview(null)
-      setFormData({ name: '', code: '', category: '', location: '', description: '', status: 'available', condition: 'good', image_url: '' })
+      setFormData({ name: '', code: '', category: '', category_type: 'Barang', location: '', description: '', status: 'available', condition: 'good', required_id: 'none', require_letter: false, image_url: '', total_stock: 1 })
       fetchItems()
     } catch (error) {
       toast.error(error.response?.data?.message || 'Gagal menyimpan data')
@@ -142,7 +146,7 @@ const AdminItemsPage = () => {
           <p className={`text-sm mt-1 ${textClass}`}>Tambah, edit, atau hapus barang inventaris</p>
         </div>
         <button
-          onClick={() => { setEditingItem(null); setFormData({ name: '', code: '', category: '', location: '', description: '', status: 'available', condition: 'good', required_id: 'none', require_letter: false, image_url: '' }); setSelectedImage(null); setImagePreview(null); setShowModal(true) }}
+          onClick={() => { setEditingItem(null); setFormData({ name: '', code: '', category: '', category_type: 'Barang', location: '', description: '', status: 'available', condition: 'good', required_id: 'none', require_letter: false, image_url: '', total_stock: 1 }); setSelectedImage(null); setImagePreview(null); setShowModal(true) }}
           className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:brightness-110 transition-all"
         >
           <Icon name="add" className="text-base" />
@@ -201,7 +205,7 @@ const AdminItemsPage = () => {
                          </td>
                         <td className={tdClass}>
                           <div className="flex gap-2">
-                            <button onClick={() => { setEditingItem(item); setFormData({ name: item.name, code: item.code || '', category: item.category || '', location: item.location || '', description: item.description || '', status: item.status, condition: item.condition || 'good', required_id: item.required_id || 'none', require_letter: item.require_letter || false, image_url: item.image_url || '' }); setSelectedImage(null); setImagePreview(null); setShowModal(true) }} className={`p-1.5 rounded-lg transition ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}>
+                            <button onClick={() => { setEditingItem(item); setFormData({ name: item.name, code: item.code || '', category: item.category || '', category_type: item.category_type || 'Barang', location: item.location || '', description: item.description || '', status: item.status, condition: item.condition || 'good', required_id: item.required_id || 'none', require_letter: item.require_letter || false, image_url: item.image_url || '', total_stock: item.total_stock || 1 }); setSelectedImage(null); setImagePreview(null); setShowModal(true) }} className={`p-1.5 rounded-lg transition ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}>
                               <Icon name="edit" className={`text-base ${isDark ? 'text-slate-400' : 'text-gray-500'}`} />
                             </button>
                             <button onClick={() => handleDelete(item.id)} className={`p-1.5 rounded-lg transition ${isDark ? 'hover:bg-red-500/10' : 'hover:bg-red-50'}`}>
@@ -269,7 +273,7 @@ const AdminItemsPage = () => {
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <button onClick={() => { setEditingItem(item); setFormData({ name: item.name, code: item.code || '', category: item.category || '', location: item.location || '', description: item.description || '', status: item.status, condition: item.condition || 'good', image_url: item.image_url || '' }); setSelectedImage(null); setImagePreview(null); setShowModal(true) }} className={`flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition ${isDark ? 'glass text-white' : 'bg-gray-100 text-gray-700'}`}>
+                    <button onClick={() => { setEditingItem(item); setFormData({ name: item.name, code: item.code || '', category: item.category || '', category_type: item.category_type || 'Barang', location: item.location || '', description: item.description || '', status: item.status, condition: item.condition || 'good', required_id: item.required_id || 'none', require_letter: item.require_letter || false, image_url: item.image_url || '', total_stock: item.total_stock || 1 }); setSelectedImage(null); setImagePreview(null); setShowModal(true) }} className={`flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition ${isDark ? 'glass text-white' : 'bg-gray-100 text-gray-700'}`}>
                       <Icon name="edit" className="text-base" /> Edit
                     </button>
                     <button onClick={() => handleDelete(item.id)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition ${isDark ? 'glass text-red-400' : 'bg-red-50 text-red-600'}`}>
@@ -328,7 +332,7 @@ const AdminItemsPage = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Kode Barang</label>
                   <input type="text" value={formData.code} onChange={(e) => setFormData({...formData, code: e.target.value})} className={`w-full px-4 py-2 rounded-xl border outline-none transition ${inputClass}`} />
@@ -336,6 +340,13 @@ const AdminItemsPage = () => {
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Kategori</label>
                   <input type="text" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className={`w-full px-4 py-2 rounded-xl border outline-none transition ${inputClass}`} />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Tipe Kategori</label>
+                  <select value={formData.category_type} onChange={(e) => setFormData({...formData, category_type: e.target.value})} className={`w-full px-4 py-2 rounded-xl border outline-none transition ${inputClass}`}>
+                    <option value="Barang">Barang</option>
+                    <option value="Ruangan">Ruangan</option>
+                  </select>
                 </div>
               </div>
               

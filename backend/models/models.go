@@ -12,6 +12,7 @@ type Item struct {
 	Name          string         `gorm:"not null;size:100" json:"name"`
 	Code          string         `gorm:"unique;size:50" json:"code"`
 	Category      string         `gorm:"size:50" json:"category"`
+	CategoryType  string         `gorm:"default:Barang;size:20" json:"category_type"` // ✅ FST INTEGRATION: Barang atau Ruangan
 	Location      string         `gorm:"size:100" json:"location"`
 	Description   string         `gorm:"size:500" json:"description"`
 	Status        string         `gorm:"default:available;size:20" json:"status"` // available, borrowed, damaged, maintenance, lost
@@ -56,7 +57,9 @@ type Transaction struct {
 	AdminID          uint       `json:"admin_id"`                                     // admin yang mencatat (0 = otomatis dari scan QR)
 	Notes            string     `gorm:"type:text" json:"notes"`
 	IsManual         bool       `gorm:"default:false" json:"is_manual"`  // true = input manual admin (backup)
-	Attachment       string     `gorm:"type:longtext" json:"attachment"` // File surat PDF (Base64)
+	Attachment       string     `gorm:"type:longtext" json:"attachment"` // File surat PDF (Base64) - Tetap ada untuk legacy fallback
+	SuratURL         string     `gorm:"size:255" json:"surat_url"`       // ✅ FST INTEGRATION: Path file surat permohonan (Upload)
+	KtpURL           string     `gorm:"size:255" json:"ktp_url"`         // ✅ FST INTEGRATION: Path file gambar KTP (Upload)
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
 }
@@ -71,11 +74,14 @@ type Booking struct {
 	Borrower    Borrower   `gorm:"foreignKey:BorrowerID" json:"borrower"`
 	Purpose     string     `gorm:"type:text" json:"purpose"`
 	BookingDate time.Time  `gorm:"not null" json:"booking_date"`
+	StartDate   time.Time  `gorm:"not null" json:"start_date"`                  // ✅ FST INTEGRATION: Waktu aktual peminjaman yang diminta
 	ExpiryDate  time.Time  `gorm:"not null" json:"expiry_date"`                 // +1 hari
 	Status      string     `gorm:"default:pending;size:20;index" json:"status"` // pending, approved, rejected, expired, cancelled
 	ApprovedBy  uint       `json:"approved_by"`                                 // admin ID
 	ApprovedAt  *time.Time `json:"approved_at"`
 	Notes       string     `gorm:"type:text" json:"notes"`
+	SuratURL    string     `gorm:"size:255" json:"surat_url"`                   // ✅ FST INTEGRATION: Path file surat permohonan
+	KtpURL      string     `gorm:"size:255" json:"ktp_url"`                     // ✅ FST INTEGRATION: Path file gambar KTP
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 }
@@ -110,6 +116,8 @@ type BorrowRequest struct {
 	Notes            string `json:"notes"`
 	IdPhoto          string `json:"id_photo"`
 	Attachment       string `json:"attachment"`
+	SuratURL         string `json:"surat_url"`
+	KtpURL           string `json:"ktp_url"`
 }
 
 // Manual Borrow Request (admin backup)
@@ -124,7 +132,8 @@ type ManualBorrowRequest struct {
 	Purpose          string `json:"purpose" binding:"required"`
 	EstReturnDateStr string `json:"est_return_date" binding:"required"`
 	Notes            string `json:"notes"`
-	IdPhoto          string `json:"id_photo"` // Base64 string dari frontend (KTP/KTM)
+	SuratURL         string `json:"surat_url"`
+	KtpURL           string `json:"ktp_url"`
 }
 
 // Return Request
@@ -149,8 +158,11 @@ type BookingRequest struct {
 	Email            string `json:"email"`
 	Purpose          string `json:"purpose" binding:"required"`
 	EstReturnDateStr string `json:"est_return_date" binding:"required"`
+	StartDateStr     string `json:"start_date"` // ✅ FST INTEGRATION: Tanggal mulai booking
 	Notes            string `json:"notes"`
 	IdPhoto          string `json:"id_photo"` // Base64 string dari frontend (KTP/KTM)
+	SuratURL         string `json:"surat_url"`
+	KtpURL           string `json:"ktp_url"`
 }
 
 // ApproveBookingRequest

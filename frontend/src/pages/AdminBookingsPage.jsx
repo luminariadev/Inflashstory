@@ -8,6 +8,15 @@ const AdminBookingsPage = () => {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  
+  const [adminData] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('adminData') || '{}')
+    } catch {
+      return {}
+    }
+  })
+  const isSuperAdmin = adminData?.role === 'Super_Admin'
 
   useEffect(() => {
     const checkTheme = () => {
@@ -44,7 +53,10 @@ const AdminBookingsPage = () => {
   const handleApprove = async (bookingId, status) => {
     try {
       await API.put(`/admin/bookings/${bookingId}/approve`, { status, notes: `Booking ${status} oleh admin` }, {
-        headers: { 'X-Admin-Token': 'admin-secret-key' }
+        headers: { 
+          'X-Admin-Token': 'admin-secret-key',
+          'X-Admin-Username': adminData.username || ''
+        }
       })
       toast.success(`Booking ${status === 'approved' ? 'disetujui' : 'ditolak'}`)
       fetchBookings()
@@ -128,15 +140,50 @@ const AdminBookingsPage = () => {
                     <tr key={booking.id} className={`border-t ${isDark ? 'border-white/5' : 'border-gray-100'} hover:bg-white/5 transition`}>
                       <td className={`${tdClass} ${textClass}`}>#{booking.id}</td>
                       <td className={`${tdClass} ${titleClass} font-medium`}>{booking.item?.name || '-'}</td>
-                      <td className={`${tdClass} ${textClass}`}>{booking.borrower?.name || '-'}</td>
+                      <td className={`${tdClass} ${textClass}`}>
+                        <p className={`${titleClass} font-medium`}>{booking.borrower?.name || '-'}</p>
+                        <div className="flex flex-col gap-1 mt-1.5">
+                          {booking.surat_url && (
+                            <a href={`${API.defaults.baseURL.replace('/api', '')}${booking.surat_url}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-500 hover:underline flex items-center gap-1 w-max">
+                              <Icon name="description" className="text-[12px]" /> Lihat Surat Permohonan
+                            </a>
+                          )}
+                          {booking.ktp_url && (
+                            <a href={`${API.defaults.baseURL.replace('/api', '')}${booking.ktp_url}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-500 hover:underline flex items-center gap-1 w-max">
+                              <Icon name="badge" className="text-[12px]" /> Lihat KTP
+                            </a>
+                          )}
+                        </div>
+                      </td>
                       <td className={`${tdClass} ${textClass}`}>{new Date(booking.booking_date).toLocaleDateString()}</td>
                       <td className={`${tdClass} ${textClass}`}>{new Date(booking.expiry_date).toLocaleDateString()}</td>
                       <td className={tdClass}>{getStatusBadge(booking.status)}</td>
                       <td className={tdClass}>
                         {booking.status === 'pending' && (
-                          <div className="flex gap-2">
-                            <button onClick={() => handleApprove(booking.id, 'approved')} className="bg-green-500/20 text-green-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-500/30 transition">Setujui</button>
-                            <button onClick={() => handleApprove(booking.id, 'rejected')} className="bg-red-500/20 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-500/30 transition">Tolak</button>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => isSuperAdmin && handleApprove(booking.id, 'approved')} 
+                                disabled={!isSuperAdmin}
+                                title={!isSuperAdmin ? "Hanya Super Admin yang dapat menyetujui" : ""}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${isSuperAdmin ? 'bg-green-500/20 text-green-600 hover:bg-green-500/30 cursor-pointer' : 'bg-gray-500/20 text-gray-500 cursor-not-allowed'}`}
+                              >
+                                Setujui
+                              </button>
+                              <button 
+                                onClick={() => isSuperAdmin && handleApprove(booking.id, 'rejected')} 
+                                disabled={!isSuperAdmin}
+                                title={!isSuperAdmin ? "Hanya Super Admin yang dapat menolak" : ""}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${isSuperAdmin ? 'bg-red-500/20 text-red-600 hover:bg-red-500/30 cursor-pointer' : 'bg-gray-500/20 text-gray-500 cursor-not-allowed'}`}
+                              >
+                                Tolak
+                              </button>
+                            </div>
+                            {!isSuperAdmin && (
+                              <p className="text-[10px] text-orange-500 leading-tight w-max max-w-[150px]">
+                                Akses dibatasi. Hanya Super Admin yang dapat menyetujui dokumen ini.
+                              </p>
+                            )}
                           </div>
                         )}
                       </td>
@@ -163,9 +210,23 @@ const AdminBookingsPage = () => {
                     <span className={`text-sm ${textClass}`}>Barang</span>
                     <span className={`text-sm font-medium ${titleClass}`}>{booking.item?.name || '-'}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-start">
                     <span className={`text-sm ${textClass}`}>Peminjam</span>
-                    <span className={`text-sm font-medium ${titleClass}`}>{booking.borrower?.name || '-'}</span>
+                    <div className="text-right">
+                      <span className={`text-sm font-medium ${titleClass}`}>{booking.borrower?.name || '-'}</span>
+                      <div className="flex flex-col items-end gap-1 mt-1">
+                        {booking.surat_url && (
+                          <a href={`${API.defaults.baseURL.replace('/api', '')}${booking.surat_url}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-500 hover:underline flex items-center gap-1 justify-end">
+                            <Icon name="description" className="text-[12px]" /> Lihat Surat Permohonan
+                          </a>
+                        )}
+                        {booking.ktp_url && (
+                          <a href={`${API.defaults.baseURL.replace('/api', '')}${booking.ktp_url}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-500 hover:underline flex items-center gap-1 justify-end">
+                            <Icon name="badge" className="text-[12px]" /> Lihat KTP
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex justify-between">
                     <span className={`text-sm ${textClass}`}>Tgl Booking</span>
@@ -177,9 +238,30 @@ const AdminBookingsPage = () => {
                   </div>
                 </div>
                 {booking.status === 'pending' && (
-                  <div className="flex gap-2 mt-4">
-                    <button onClick={() => handleApprove(booking.id, 'approved')} className="flex-1 bg-green-500/20 text-green-600 py-2.5 rounded-lg text-sm font-medium hover:bg-green-500/30 transition">Setujui</button>
-                    <button onClick={() => handleApprove(booking.id, 'rejected')} className="flex-1 bg-red-500/20 text-red-600 py-2.5 rounded-lg text-sm font-medium hover:bg-red-500/30 transition">Tolak</button>
+                  <div className="mt-4 flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => isSuperAdmin && handleApprove(booking.id, 'approved')} 
+                        disabled={!isSuperAdmin}
+                        title={!isSuperAdmin ? "Hanya Super Admin yang dapat menyetujui" : ""}
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${isSuperAdmin ? 'bg-green-500/20 text-green-600 hover:bg-green-500/30 cursor-pointer' : 'bg-gray-500/20 text-gray-500 cursor-not-allowed'}`}
+                      >
+                        Setujui
+                      </button>
+                      <button 
+                        onClick={() => isSuperAdmin && handleApprove(booking.id, 'rejected')} 
+                        disabled={!isSuperAdmin}
+                        title={!isSuperAdmin ? "Hanya Super Admin yang dapat menolak" : ""}
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${isSuperAdmin ? 'bg-red-500/20 text-red-600 hover:bg-red-500/30 cursor-pointer' : 'bg-gray-500/20 text-gray-500 cursor-not-allowed'}`}
+                      >
+                        Tolak
+                      </button>
+                    </div>
+                    {!isSuperAdmin && (
+                      <p className="text-[11px] text-orange-500 text-center italic mt-1">
+                        * Akses dibatasi. Hanya Super Admin yang dapat menyetujui dokumen ini.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
