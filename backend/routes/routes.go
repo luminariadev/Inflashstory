@@ -22,7 +22,6 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Booking routes (public - fitur lanjutan)
 		api.POST("/bookings", controllers.CreateBooking)
-		api.DELETE("/bookings/:id/cancel", controllers.CancelBooking)
 		r.GET("/api/items/:id/bookings", controllers.GetItemBookings)
 
 		// ✅ FITUR BARU: Cek Status Peminjaman Mahasiswa (Public)
@@ -36,6 +35,13 @@ func SetupRoutes(r *gin.Engine) {
 
 		// ✅ LOGIN endpoint (PUBLIC - tidak perlu auth)
 		api.POST("/admin/login", controllers.LoginAdmin)
+	}
+
+	// ==================== USER ROUTES (Perlu Autentikasi User) ====================
+	userGroup := r.Group("/api/user")
+	userGroup.Use(middleware.UserAuth())
+	{
+		userGroup.DELETE("/bookings/:id/cancel", controllers.CancelBooking)
 	}
 
 	// ==================== ADMIN ROUTES (Perlu Autentikasi) ====================

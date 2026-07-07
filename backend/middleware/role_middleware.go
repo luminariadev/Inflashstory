@@ -13,12 +13,15 @@ import (
 func RequireSuperAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		db := c.MustGet("db").(*gorm.DB)
-		adminUsername := c.GetHeader("X-Admin-Username")
+		
+		// Fix N1: Mengambil identitas dari context yang harusnya sudah divalidasi oleh auth middleware
+		// bukan membaca langsung dari header HTTP mentah yang bisa dipalsukan.
+		adminUsername := c.GetString("admin_username")
 
 		if adminUsername == "" {
 			c.JSON(http.StatusForbidden, gin.H{
 				"status":  "error",
-				"message": "Akses ditolak. Header X-Admin-Username tidak ditemukan.",
+				"message": "Akses ditolak. Sesi admin tidak ditemukan.",
 			})
 			c.Abort()
 			return

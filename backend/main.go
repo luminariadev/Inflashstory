@@ -1,7 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"inventory-api/config"
@@ -86,8 +91,11 @@ func main() {
 
 	// ✅ NYALAIN MESIN CRON AUTO-CANCEL
 	db := config.GetDB()
+	
+	ctx, cancel := context.WithCancel(context.Background())
+	
 	utils.StartAutoCancelCron(db)
-	utils.InitCronJobs(db) // ✅ CRON BOOKING ANTI-GHOSTING
+	utils.InitCronJobs(ctx, db) // ✅ CRON BOOKING ANTI-GHOSTING
 
 	r := gin.Default()
 
@@ -101,8 +109,8 @@ func main() {
 	// Routes
 	routes.SetupRoutes(r)
 
-	log.Println("ðŸš€ Server running on http://localhost:8080")
-	log.Println("ðŸ“‹ API endpoints:")
+	log.Println("🚀 Server running on http://localhost:8080")
+	log.Println("📋 API endpoints:")
 	log.Println("   Public:")
 	log.Println("     GET  /api/items")
 	log.Println("     POST /api/borrow/:id  (scan QR - otomatis)")
@@ -113,7 +121,30 @@ func main() {
 	log.Println("     GET  /api/admin/transactions")
 	log.Println("     GET  /api/admin/borrowers")
 
-	if err := r.Run(":8080"); err != nil {
-		log.Fatal("âŒ Gagal start server:", err)
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
 	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("❌ Gagal start server: %v", err)
+		}
+	}()
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	cancel() // Stop all cron jobs
+
+	ctxShutdown, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelShutdown()
+	if err := srv.Shutdown(ctxShutdown); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+
+	log.Println("Server exiting")
 }

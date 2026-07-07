@@ -1,9 +1,10 @@
 package controllers
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"inventory-api/models"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // CreateBooking - User membuat booking (fitur lanjutan)
@@ -79,9 +81,14 @@ func CreateBooking(c *gin.Context) {
 	startDate := time.Now()
 	if req.StartDateStr != "" {
 		parsedStart, err := utils.ParseDate(req.StartDateStr)
-		if err == nil {
-			startDate = parsedStart
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  "error",
+				"message": "Format tanggal tidak valid",
+			})
+			return
 		}
+		startDate = parsedStart
 	}
 
 	// ✅ Validasi tanggal tidak boleh kurang dari hari ini
@@ -210,62 +217,90 @@ func ApproveBooking(c *gin.Context) {
 		return
 	}
 
-	// Update booking
-	booking.Status = req.Status
-	if req.Notes != "" {
-		booking.Notes = req.Notes
-	}
+	// Fix N4: Gunakan db.Transaction untuk mencegah race condition (TOCTOU)
+	err := db.Transaction(func(tx *gorm.DB) error {
+		// Jika approved, re-check status item dengan lock UPDATE
+		if req.Status == "approved" {
+			var item models.Item
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&item, booking.ItemID).Error; err != nil {
+				return errors.New("item tidak ditemukan")
+			}
 
-	// ✅ CLEAN UP STORAGE: Jika ditolak, hapus file dokumen secara fisik
-	if req.Status == "rejected" {
-		if booking.SuratURL != "" {
-			_ = os.Remove("." + booking.SuratURL) // asumsi URL berawal dari /uploads/...
+			if item.Status != "available" {
+				return errors.New("overlap: item sudah dipinjam atau tidak tersedia")
+			}
+
+			// Update item status
+			item.Status = "borrowed"
+			item.UpdatedAt = time.Now()
+			if err := tx.Save(&item).Error; err != nil {
+				return err
+			}
 		}
-		if booking.KtpURL != "" {
-			_ = os.Remove("." + booking.KtpURL)
+
+		// Update booking
+		booking.Status = req.Status
+		if req.Notes != "" {
+			booking.Notes = req.Notes
 		}
-	}
 
-	now := time.Now()
-	booking.ApprovedAt = &now
-	booking.UpdatedAt = time.Now()
-
-	if err := db.Save(&booking).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "error",
-			"message": "Gagal menyimpan perubahan booking",
-		})
-		return
-	}
-
-	// If approved, create transaction automatically
-	if req.Status == "approved" {
-		transaction := models.Transaction{
-			TransactionCode: utils.GenerateTransactionCode(),
-			ItemID:          booking.ItemID,
-			BorrowerID:      booking.BorrowerID,
-			Purpose:         booking.Purpose,
-			BorrowDate:      time.Now(),
-			EstReturnDate:   booking.ExpiryDate,
-			Status:          "borrowed",
-			Notes:           "Dari booking: " + booking.BookingCode,
-			IsManual:        false,
+		now := time.Now()
+		booking.ApprovedAt = &now
+		booking.UpdatedAt = time.Now()
+		
+		// ✅ FIX N11: Set ApprovedBy dari context admin_username
+		adminUsername := c.GetString("admin_username")
+		if adminUsername != "" {
+			var admin models.Admin
+			if err := tx.Where("username = ?", adminUsername).First(&admin).Error; err == nil {
+				booking.ApprovedBy = admin.ID
+			}
 		}
-		if err := db.Create(&transaction).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
+
+		if err := tx.Save(&booking).Error; err != nil {
+			return err
+		}
+
+		// If approved, create transaction automatically
+		if req.Status == "approved" {
+			transaction := models.Transaction{
+				TransactionCode: utils.GenerateTransactionCode(),
+				ItemID:          booking.ItemID,
+				BorrowerID:      booking.BorrowerID,
+				Purpose:         booking.Purpose,
+				BorrowDate:      time.Now(),
+				EstReturnDate:   booking.ExpiryDate,
+				Status:          "borrowed",
+				Notes:           "Dari booking: " + booking.BookingCode,
+				IsManual:        false,
+			}
+			if err := tx.Create(&transaction).Error; err != nil {
+				return err
+			}
+		}
+		
+		return nil
+	})
+
+	if err != nil {
+		if err.Error() == "overlap: item sudah dipinjam atau tidak tersedia" {
+			c.JSON(http.StatusConflict, gin.H{
 				"status":  "error",
-				"message": "Booking approved tapi gagal membuat transaksi: " + err.Error(),
+				"message": "Gagal menyetujui: Barang sudah dipinjam oleh pihak lain.",
 			})
 			return
 		}
 
-		// Update item status
-		var item models.Item
-		if err := db.First(&item, booking.ItemID).Error; err == nil {
-			item.Status = "borrowed"
-			item.UpdatedAt = time.Now()
-			db.Save(&item)
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": "Gagal memproses booking: " + err.Error(),
+		})
+		return
+	}
+
+	// ✅ CLEAN UP STORAGE: Jika ditolak, hapus file dokumen secara fisik (di luar DB transaction)
+	if req.Status == "rejected" {
+		utils.DeleteDocumentFiles(booking.SuratURL, booking.KtpURL)
 	}
 
 	// Reload booking
@@ -284,10 +319,22 @@ func CancelBooking(c *gin.Context) {
 	id := c.Param("id")
 
 	var booking models.Booking
-	if err := db.First(&booking, id).Error; err != nil {
+	if err := db.Preload("Borrower").First(&booking, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"status":  "error",
 			"message": "Booking tidak ditemukan",
+		})
+		return
+	}
+
+	// Validasi UserID (dari token) == BorrowerID pemilik transaksi
+	userID := c.GetString("user_id")
+	borrowerIDStr := fmt.Sprintf("%d", booking.BorrowerID)
+	
+	if userID != borrowerIDStr && userID != booking.Borrower.IdentityNo {
+		c.JSON(http.StatusForbidden, gin.H{
+			"status":  "error",
+			"message": "Forbidden: Anda tidak memiliki akses untuk membatalkan booking ini",
 		})
 		return
 	}

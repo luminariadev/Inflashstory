@@ -260,9 +260,8 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
         toast.success(`Booking sukses! Silakan simpan resi Anda.`, { duration: 5000 })
         
         // ✅ FIX TIKET GA MUNCUL: 
-        // Kalau Backend Golang lu pelit gak ngasih data, kita paksa bikin data dummy 
-        // dari form biar UI Tiket Ungu-nya TETEP TER-RENDER!
-        const ticketData = response.data.data || {
+        // Mengambil data asli dari response.data.transaction sesuai payload backend
+        const ticketData = response.data.transaction || {
           id: 'PROSES-ACC',
           transaction_code: 'TRX-MENUNGGU-ACC'
         }

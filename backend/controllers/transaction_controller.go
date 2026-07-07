@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // BorrowItem - Mahasiswa scan QR atau Booking (Logic Traveloka Lite + Anti Race Condition)
@@ -191,24 +192,6 @@ func ManualBorrowItem(c *gin.Context) {
 		return
 	}
 
-	// Cek item exists dan available
-	var item models.Item
-	if err := db.First(&item, req.ItemID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"status":  "error",
-			"message": "Item tidak ditemukan",
-		})
-		return
-	}
-
-	if item.Status != "available" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "error",
-			"message": "Item sedang tidak tersedia",
-		})
-		return
-	}
-
 	// Parse date
 	estReturnDate, err := utils.ParseDate(req.EstReturnDateStr)
 	if err != nil {
@@ -219,56 +202,77 @@ func ManualBorrowItem(c *gin.Context) {
 		return
 	}
 
-	// Find or create borrower
+	var item models.Item
 	var borrower models.Borrower
-	result := db.Where("identity_no = ?", req.IdentityNo).First(&borrower)
-	if result.Error != nil {
-		borrower = models.Borrower{
-			Name:         req.BorrowerName,
-			IdentityNo:   req.IdentityNo,
-			StudyProgram: req.StudyProgram,
-			Class:        req.Class,
-			Phone:        req.Phone,
-			Email:        req.Email,
-			CreatedAt:    time.Now(),
-			UpdatedAt:    time.Now(),
-		}
-		db.Create(&borrower)
-	}
+	var transaction models.Transaction
 
-	// âœ… UPDATE STATUS ITEM MENJADI BORROWED
-	if err := db.Model(&item).Where("id = ?", req.ItemID).Updates(map[string]interface{}{
-		"status":     "borrowed",
-		"updated_at": time.Now(),
-	}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+	err = db.Transaction(func(tx *gorm.DB) error {
+		// 1. Lock Item
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&item, req.ItemID).Error; err != nil {
+			return errors.New("Item tidak ditemukan")
+		}
+
+		if item.Status != "available" {
+			return errors.New("Item sedang tidak tersedia")
+		}
+
+		// 2. Find or Create Borrower
+		result := tx.Where("identity_no = ?", req.IdentityNo).First(&borrower)
+		if result.Error != nil {
+			borrower = models.Borrower{
+				Name:         req.BorrowerName,
+				IdentityNo:   req.IdentityNo,
+				StudyProgram: req.StudyProgram,
+				Class:        req.Class,
+				Phone:        req.Phone,
+				Email:        req.Email,
+				CreatedAt:    time.Now(),
+				UpdatedAt:    time.Now(),
+			}
+			if err := tx.Create(&borrower).Error; err != nil {
+				return err
+			}
+		}
+
+		// 3. Update Item
+		item.Status = "borrowed"
+		item.UpdatedAt = time.Now()
+		if err := tx.Save(&item).Error; err != nil {
+			return err
+		}
+
+		// 4. Create Transaction
+		transaction = models.Transaction{
+			TransactionCode: utils.GenerateTransactionCode(),
+			ItemID:          item.ID,
+			BorrowerID:      borrower.ID,
+			Purpose:         req.Purpose,
+			BorrowDate:      time.Now(),
+			EstReturnDate:   estReturnDate,
+			Status:          "borrowed",
+			Notes:           req.Notes,
+			SuratURL:        req.SuratURL,
+			KtpURL:          req.KtpURL,
+			IsManual:        true,
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+		}
+
+		if err := tx.Create(&transaction).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "error",
-			"message": "Gagal mengupdate status barang: " + err.Error(),
+			"message": err.Error(),
 		})
 		return
 	}
 
-	// Reload item
-	db.First(&item, req.ItemID)
-
-	// Create transaction
-	transaction := models.Transaction{
-		TransactionCode: utils.GenerateTransactionCode(),
-		ItemID:          item.ID,
-		BorrowerID:      borrower.ID,
-		Purpose:         req.Purpose,
-		BorrowDate:      time.Now(),
-		EstReturnDate:   estReturnDate,
-		Status:          "borrowed",
-		Notes:           req.Notes,
-		SuratURL:        req.SuratURL,
-		KtpURL:          req.KtpURL,
-		IsManual:        true,
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
-	}
-
-	db.Create(&transaction)
 	db.Preload("Item").Preload("Borrower").First(&transaction, transaction.ID)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -312,14 +316,9 @@ func ReturnItem(c *gin.Context) {
 	transaction.UpdatedAt = time.Now()
 
 	// --- AUTO CLEAN-UP TRANSAKSI RETURNED ---
-	if transaction.SuratURL != "" {
-		_ = os.Remove("." + transaction.SuratURL) // Hapus file fisik (Abaikan error jika file tidak ada)
-		transaction.SuratURL = ""                 // Kosongkan database link
-	}
-	if transaction.KtpURL != "" {
-		_ = os.Remove("." + transaction.KtpURL) // Hapus file fisik (Abaikan error jika file tidak ada)
-		transaction.KtpURL = ""                 // Kosongkan database link
-	}
+	utils.DeleteDocumentFiles(transaction.SuratURL, transaction.KtpURL)
+	transaction.SuratURL = ""                 // Kosongkan database link
+	transaction.KtpURL = ""                   // Kosongkan database link
 	// ----------------------------------------
 
 	db.Save(&transaction)

@@ -44,6 +44,30 @@ func UploadDocument(c *gin.Context) {
 		return
 	}
 
+	// ✅ FIX N13: Validasi MIME Type Asli (Bukan sekadar Ekstensi)
+	openedFile, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membaca file"})
+		return
+	}
+	defer openedFile.Close()
+
+	buff := make([]byte, 512)
+	if _, err = openedFile.Read(buff); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memverifikasi isi file"})
+		return
+	}
+
+	mimeType := http.DetectContentType(buff)
+	if docType == "surat" && mimeType != "application/pdf" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File surat permohonan harus berupa dokumen PDF murni (MIME mismatch)"})
+		return
+	}
+	if docType == "ktp" && mimeType != "image/jpeg" && mimeType != "image/png" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File KTP harus berupa gambar JPG/PNG murni (MIME mismatch)"})
+		return
+	}
+
 	// Tentukan lokasi penyimpanan (./uploads/documents/)
 	uploadDir := filepath.Join("uploads", "documents")
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {

@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"inventory-api/models"
@@ -44,6 +45,9 @@ func runAutoCancel(db *gorm.DB) {
 	}
 
 	for _, trx := range expiredTransactions {
+		// ✅ FIX N9: Hapus file fisik PDF/KTP sebelum menolak transaksi (Refactored N16)
+		DeleteDocumentFiles(trx.SuratURL, trx.KtpURL)
+
 		// Ubah status jadi ditolak / hangus
 		trx.Status = "rejected"
 		trx.Notes = "⚠️ Dibatalkan otomatis oleh sistem: Terlambat mengambil barang lebih dari 2 jam dari jadwal."
