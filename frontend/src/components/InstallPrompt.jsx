@@ -40,7 +40,7 @@ const InstallPrompt = () => {
     deferredPrompt.prompt()
     const { outcome } = await deferredPrompt.userChoice
     if (outcome === 'accepted') {
-      console.log('User menginstal Inflashtory')
+      console.log('User menginstal Fstorage')
     }
     setDeferredPrompt(null)
   }

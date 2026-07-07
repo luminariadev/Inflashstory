@@ -62,9 +62,9 @@ const AdminSidebar = ({ isDark, onToggleTheme }) => {
       `}>
         {/* Logo */}
         <div className={`flex items-center gap-2 p-6 border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
-          <Icon name="warehouse" className="text-primary text-2xl" filled />
+          <img src="/assets/images/saintek.png" alt="FST" className="h-7 w-auto" />
           <span className={`text-lg font-bold tracking-widest ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            Admin Panel
+            Fstorage
           </span>
         </div>
 

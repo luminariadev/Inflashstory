@@ -1,4 +1,4 @@
-# 📦 Inflashtory - Sistem Inventaris & Peminjaman Barang Berbasis QR Code
+# 📦 Fstorage - Sistem Inventaris & Peminjaman Barang Berbasis QR Code (Fakultas Sains dan Teknologi)
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)
@@ -6,7 +6,7 @@
 ![Tailwind](https://img.shields.io/badge/Tailwind-3.x-06B6D4?logo=tailwindcss)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-**Sistem manajemen inventaris dan peminjaman barang berbasis QR Code untuk lingkungan kampus.**
+**Sistem manajemen inventaris dan peminjaman barang berbasis QR Code untuk Fakultas Sains dan Teknologi (FST).**
 
 ---
 
@@ -15,73 +15,16 @@
 - [Tentang Project](#-tentang-project)
 - [Fitur Utama](#-fitur-utama)
 - [Tech Stack](#-tech-stack)
-- [Arsitektur Sistem](#-arsitektur-sistem)
-- [Prerequisites](#-prerequisites)
 - [Instalasi](#-instalasi)
 - [Konfigurasi](#-konfigurasi)
 - [Menjalankan Aplikasi](#-menjalankan-aplikasi)
 - [API Endpoints](#-api-endpoints)
-- [Database Schema](#-database-schema)
-- [Deployment](#-deployment)
-- [Troubleshooting](#-troubleshooting)
-- [Contributing](#-contributing)
-- [License](#-license)
 
 ---
 
 ## 🎯 Tentang Project
 
-**Inflashtory** adalah aplikasi manajemen inventaris yang memudahkan proses peminjaman barang di lingkungan kampus dengan teknologi QR Code. Sistem ini menggantikan proses manual yang memakan waktu dengan solusi digital yang cepat, transparan, dan terintegrasi.
-
-### Masalah yang Dipecahkan
-
-- ❌ Proses peminjaman manual yang memakan waktu
-- ❌ Kesulitan melacak status barang secara real-time
-- ❌ Tidak ada histori peminjaman yang terpusat
-- ❌ Booking barang yang tidak terstruktur
-- ❌ Pelaporan kerusakan/hilang yang sulit
-
-### Solusi
-
-- ✅ Scan QR Code untuk peminjaman instan
-- ✅ Dashboard real-time untuk admin
-- ✅ Booking system dengan approval workflow
-- ✅ Tracking lengkap transaksi peminjaman
-- ✅ Laporan dan statistik otomatis
-
----
-
-## ✨ Fitur Utama
-
-### 👤 User Frontend
-
-| Fitur                | Deskripsi                                          |
-| -------------------- | -------------------------------------------------- |
-| **Daftar Barang**    | Lihat semua barang inventaris dengan filter status |
-| **Scan QR Code**     | Scan QR untuk langsung meminjam barang             |
-| **Booking Barang**   | Booking barang yang sedang dipinjam                |
-| **Cek Status**       | Lihat ketersediaan barang real-time                |
-| **Informasi Barang** | Detail lengkap setiap barang                       |
-
-### 👑 Admin Panel
-
-| Fitur                | Deskripsi                                   |
-| -------------------- | ------------------------------------------- |
-| **Dashboard**        | Statistik total barang, transaksi, peminjam |
-| **Manajemen Barang** | CRUD barang, update status, generate QR     |
-| **Booking Approval** | Approve/reject booking peminjaman           |
-| **Transaksi**        | Pantau semua transaksi peminjaman           |
-| **Data Peminjam**    | Lihat dan cari data peminjam                |
-| **Pengembalian**     | Proses pengembalian barang                  |
-
-### 🔧 Fitur Teknis
-
-- ✅ Dark/Light mode
-- ✅ Responsive design (Mobile & Desktop)
-- ✅ Real-time status update
-- ✅ QR Code generation untuk setiap barang
-- ✅ Search & filter barang
-- ✅ Export data (CSV)
+**Fstorage** adalah aplikasi manajemen inventaris untuk Fakultas Sains dan Teknologi (FST) yang memudahkan proses peminjaman barang di lingkungan kampus dengan teknologi QR Code. Sistem ini menggantikan proses manual dengan solusi digital yang cepat, transparan, dan terintegrasi.
 
 ---
 
@@ -94,7 +37,7 @@
 | **Go**     | 1.21+  | Bahasa pemrograman backend         |
 | **Gin**    | v1.9+  | Web framework                      |
 | **GORM**   | v1.25+ | ORM untuk database                 |
-| **SQLite** | 3.x    | Database (bisa diganti PostgreSQL) |
+| **MySQL**  | 8.x    | Database via Laragon               |
 | **JWT**    | v5     | Authentication (admin)             |
 | **Bcrypt** | -      | Password hashing                   |
 
@@ -261,8 +204,15 @@ PORT=8080
 GIN_MODE=debug
 
 # Database Configuration
-DB_DRIVER=sqlite
-DB_PATH=./inventory.db
+DB_DRIVER=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3307
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=inflashstory
+
+# Frontend URL (Ngrok untuk akses publik)
+FRONTEND_URL=https://unbitter-diffusely-lionel.ngrok-free.dev
 
 # JWT Configuration
 JWT_SECRET=your-super-secret-key-change-this
@@ -272,13 +222,13 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
 
 # CORS Configuration
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000,https://unbitter-diffusely-lionel.ngrok-free.dev
 ```
 
 ### Frontend (.env)
 
 ```env
-VITE_API_URL=http://localhost:8080/api
+VITE_API_URL=/api
 VITE_ADMIN_TOKEN=admin-secret-key
 ```
 

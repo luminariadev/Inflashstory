@@ -59,9 +59,9 @@ const Navbar = () => {
     }`}>
       <div className="flex justify-between items-center px-6 h-16 max-w-7xl mx-auto">
         <button onClick={() => handleNavigate('/')} className="flex items-center gap-2 cursor-pointer group">
-          <Icon name="warehouse" className="text-primary text-2xl transition-transform group-hover:scale-105" filled />
+          <img src="/assets/images/saintek.png" alt="FST" className="h-8 w-auto" />
           <span className={`text-lg font-bold tracking-widest transition-colors ${isDark ? 'text-white' : 'text-gray-800'}`}>
-            Inflashtory
+            Fstorage
           </span>
         </button>
 

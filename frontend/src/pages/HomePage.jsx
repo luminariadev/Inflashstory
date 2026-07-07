@@ -65,14 +65,15 @@ const HomePage = () => {
         {isDark && (
           <div className="absolute -z-10 w-64 h-64 bg-primary-container/20 blur-[100px] rounded-full top-0 left-1/2 -translate-x-1/2"></div>
         )}
-        <div className={`p-5 rounded-full inline-flex items-center justify-center ${isDark ? 'glass border-primary/20' : 'bg-white/80 border border-gray-200 shadow-sm'}`}>
-          <Icon name="warehouse" className="text-5xl text-primary" filled />
+        <div className={`p-4 rounded-full inline-flex items-center justify-center gap-3 ${isDark ? 'glass border-primary/20' : 'bg-white/80 border border-gray-200 shadow-sm'}`}>
+          <img src="/assets/images/saintek.png" alt="FST Logo" className="h-10 md:h-12 w-auto" />
+          <img src="/assets/images/uin.png" alt="UNJ Logo" className="h-10 md:h-12 w-auto" />
         </div>
         <h1 className={`text-5xl md:text-6xl font-bold tracking-tight ${titleClass}`}>
-          Inflashtory
+          Fstorage
         </h1>
         <p className={`text-lg max-w-2xl ${textClass}`}>
-          Sistem Inventaris dan Peminjaman Barang Berbasis QR Code untuk Kemudahan Manajemen Kampus
+          Sistem Inventaris dan Peminjaman Barang Berbasis QR Code — Fakultas Sains dan Teknologi
         </p>
         <div className="flex flex-wrap justify-center gap-4 pt-3">
           <a href="/items" className="bg-primary text-white font-bold text-xs tracking-wider px-6 py-4 rounded-xl inner-glow shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all">

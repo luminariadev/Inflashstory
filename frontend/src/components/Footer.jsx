@@ -9,10 +9,11 @@ const Footer = ({ isDark = true }) => {
     }`}>
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex items-center gap-2">
-            <Icon name="warehouse" className="text-xl text-primary" />
+          <div className="flex items-center gap-3">
+            <img src="/assets/images/saintek.png" alt="FST" className="h-6 w-auto" />
+            <img src="/assets/images/uin.png" alt="UNJ" className="h-6 w-auto" />
             <span className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-gray-800'}`}>
-              Inflashtory Systems
+              Fstorage - FST
             </span>
           </div>
           
@@ -29,7 +30,7 @@ const Footer = ({ isDark = true }) => {
           </div>
           
           <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
-            © 2024 Inflashtory Systems. All rights reserved.
+            © 2024 Fstorage - Fakultas Sains dan Teknologi. All rights reserved.
           </p>
         </div>
       </div>
