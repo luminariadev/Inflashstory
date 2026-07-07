@@ -10,7 +10,6 @@ const AdminSidebar = ({ isDark, onToggleTheme }) => {
   const menuItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: 'dashboard' },
     { name: 'Manajemen Barang', path: '/admin/items', icon: 'inventory_2' },
-    { name: 'Daftar Booking', path: '/admin/bookings', icon: 'event_available' },
     { name: 'Transaksi', path: '/admin/transactions', icon: 'swap_horiz' },
     { name: 'Data Peminjam', path: '/admin/borrowers', icon: 'groups' },
   ]

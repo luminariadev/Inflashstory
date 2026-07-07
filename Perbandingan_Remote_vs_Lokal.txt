@@ -1,0 +1,291 @@
+================================================================================
+ PERBANDINGAN BRANCH TESTING: REMOTE (origin/testing) vs LOKAL (testing)
+ Inflashstory - Sistem Informasi Manajemen Inventaris & Peminjaman Kampus
+================================================================================
+ Tanggal: 7 Juli 2026
+ Remote:  origin/testing commit 4880c9c - "fix: resolve all 16 audit findings"
+ Lokal:   testing commit c85cad6 - "fix: update upload forms styling, proxy, etc."
+================================================================================
+
+
+════════════════════════════════════════════════════════════════════════════════
+ A. RINGKASAN EKSEKUTIF
+════════════════════════════════════════════════════════════════════════════════
+
+Remote -> Fokus KEAMANAN BACKEND (audit 16 bug, anti race condition,
+          row-level locking, rate limiting, graceful shutdown)
+Lokal  -> Fokus TAMPILAN FRONTEND (upload form improved, proxy fix,
+          template surat, admin URL fix)
+Database -> Remote: SQLite | Lokal: MySQL via Laragon
+
+Menu "Daftar Booking" di Admin:
+ - Remote: ✅ TETAP ADA (tidak dihapus)
+ - Lokal: ✅ TETAP ADA (sama dengan remote)
+ - Keterangan: BUKAN duplikat fitur. Booking = pengajuan dari user via web
+   (butuh ACC), Transaksi = semua status peminjaman.
+   Bedanya: Booking fokus ke APPROVAL, Transaksi mencakup SEMUA alur.
+
+Sayangnya, commit lokal menimpa sebagian besar perbaikan backend remote
+karena dilakukan git add -A tanpa merge terlebih dahulu.
+
+
+════════════════════════════════════════════════════════════════════════════════
+ B. PERBANDINGAN DETAIL PER FILE
+════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. backend/main.go                                                         │
+├──────────────┬───────────────────────────────┬──────────────────────────────┤
+│              │ REMOTE (4880c9c)               │ LOKAL (c85cad6)              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Graceful     │ ADA: signal.Notify SIGINT/     │ HILANG: cuma pake r.Run()    │
+│ Shutdown     │ SIGTERM, cron job cancel       │ Server langsung mati tanpa    │
+│              │ Server mati dengan bersih       │ cleanup                      │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Cron Job     │ Dua cron terpisah:              │ Satu cron gabungan:           │
+│              │ StartAutoCancelCron +           │ StartCronJobs()              │
+│              │ InitCronJobs                    │                              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Admin Role   │ superadmin (lowercase)         │ Super_Admin (capital)        │
+│              │ ❌ Tidak cocok middleware        │ ✅ Cocok middleware           │
+│              │                                 │ + auto-update jika salah     │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Import       │ net/http, os, os/signal,       │ Tidak import http, os,       │
+│ Tambahan     │ syscall                        │ signal, syscall              │
+└──────────────┴───────────────────────────────┴──────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2. backend/controllers/transaction_controller.go                            │
+├──────────────┬───────────────────────────────┬──────────────────────────────┤
+│              │ REMOTE (4880c9c)               │ LOKAL (c85cad6)              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Manual       │ DB Transaction + row-level     │ Cuma overlap count check     │
+│ Borrow       │ locking (clause.Locking)       │ TANPA database lock          │
+│ (Anti Race)  │ ✅ AMAN dari race condition    │ ⚠️ RAWAN race condition       │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Return       │ Atomic: update status + hapus  │ Tidak atomic:                 │
+│ (Kembalikan) │ file dalam 1 db.Transaction()  │ update status dulu,           │
+│              │ ✅ Aman jika crash di tengah   │ baru hapus file              │
+│              │                                 │ ⚠️ Risiko file ghost          │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Approve/     │ Db.Transaction untuk approve,  │ Langsung update tanpa wrap    │
+│ Reject       │ reject, handover               │ db.Transaction()             │
+│              │ ✅ Atomic semua operasi        │ ⚠️ Risiko data tidak konsisten│
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Delete       │ Pakai utils.file_utils.go      │ Pakai utils.helpers.go       │
+│ Document     │ (file_utils.go HAPUS di lokal) │ (fungsi dipindahkan)         │
+└──────────────┴───────────────────────────────┴──────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 3. backend/middleware/                                                      │
+├──────────────┬───────────────────────────────┬──────────────────────────────┤
+│              │ REMOTE (4880c9c)               │ LOKAL (c85cad6)              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ rate_limit   │ ADA (54 baris)                 │ TIDAK ADA                    │
+│ .go          │ ✅ Proteksi DDoS/brute force   │ ❌ API publik tanpa limit     │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ auth.go      │ Cek admin data + X-Admin-      │ Sama dengan remote           │
+│              │ Username header                │                              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ role_middle- │ Cek role = "Super_Admin"       │ Sama dengan remote           │
+│ ware.go      │ (case sensitive)               │ (tapi seed masih lower)      │
+└──────────────┴───────────────────────────────┴──────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4. backend/utils/                                                           │
+├──────────────┬───────────────────────────────┬──────────────────────────────┤
+│              │ REMOTE (4880c9c)               │ LOKAL (c85cad6)              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ file_utils   │ ✅ ADA: DeleteDocument utility │ ❌ FILE HAPUS DARI REPO       │
+│ .go          │ (fungsi DRY hapus file)        │ Fungsi dipindah ke helpers.go│
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ helpers.go   │ Fungsi2 utility umum           │ Sama + tambah DeleteDocument │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ scheduler.go │ ✅ ADA                        │ ❌ FILE HAPUS DARI REPO       │
+│              │                                │ (digantikan oleh cron.go)    │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ cron.go      │ ADA                           │ ADA (versi berbeda)          │
+└──────────────┴───────────────────────────────┴──────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 5. backend/routes/routes.go                                                 │
+├──────────────┬───────────────────────────────┬──────────────────────────────┤
+│              │ REMOTE (4880c9c)               │ LOKAL (c85cad6)              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Upload       │ ADA di admin group             │ SAMA                         │
+│ Endpoint     │ (perlu auth)                   │                              │
+│ /api/admin/  │                                │                              │
+│ upload       │                                │                              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ DELETE /api/ │ DI ADMIN GROUP (aman)          │ DI ADMIN GROUP (aman)        │
+│ bookings/:id │                                │                              │
+│ /cancel      │                                │                              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ POST /api/   │ ADA (public)                   │ ADA (public)                 │
+│ upload (public) │                              │                              │
+└──────────────┴───────────────────────────────┴──────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 6. frontend/                                                                │
+├──────────────┬───────────────────────────────┬──────────────────────────────┤
+│              │ REMOTE (4880c9c)               │ LOKAL (c85cad6)              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ upload       │ Default: rounded-xl            │ Improved: rounded-3xl +      │
+│ form styling │ Kurang rounded                 │ transition-colors durasi     │
+│ (Booking     │                                 │ ✅ LEBIH BAGUS               │
+│ Modal)       │                                 │                              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ upload       │ Default: rounded-xl             │ Improved: rounded-3xl +      │
+│ form styling │ Kurang rounded                 │ shadow/ring untuk preview    │
+│ (Borrow      │                                 │ ✅ LEBIH BAGUS               │
+│ Form)        │                                 │                              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ vite         │ TIDAK ADA proxy /uploads       │ ADA: proxy /uploads          │
+│ config.js    │                                 │ → backend:8080              │
+│              │ ❌ PDF & KTP tidak bisa dibuka  │ ✅ PDF/KTP bisa diakses      │
+│              │   di browser                    │                              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Admin        │ URL path:                       │ URL path:                    │
+│ Transactions │ admin/uploads/...pdf            │ uploads/documents/...pdf     │
+│ Page         │ ❌ Link broken (404)            │ ✅ Link bisa dibuka          │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Template     │ Placeholder 38 bytes (teks)     │ File .docx valid 37KB        │
+│ Surat_FST    │ ❌ Tidak bisa dibuka di Word    │ ✅ Bisa dibuka di Word       │
+│ .docx        │                                 │                              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ frontend/    │ TIDAK ADA                      │ ADA: .env dan .env.production│
+│ .env files   │                                │ (VITE_API_URL=/api)          │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Admin        │ ✅ ADA (tidak dihapus)          │ ✅ ADA (tidak dihapus)       │
+│ Bookings     │ Menu: "Daftar Booking"          │ Menu: "Daftar Booking"       │
+│ Page         │ Fokus: Approve/Reject           │ Fokus: Approve/Reject        │
+│              │ booking dari user               │ booking dari user            │
+│              │ (BUKAN duplikat transaksi)      │ (BUKAN duplikat transaksi)   │
+└──────────────┴───────────────────────────────┴──────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 7. backend/.env                                                             │
+├──────────────┬───────────────────────────────┬──────────────────────────────┤
+│              │ REMOTE (4880c9c)               │ LOKAL (c85cad6)              │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ Database     │ SQLite (DB_PATH=./inventory.db)│ MySQL via Laragon            │
+│              │                                │ host:127.0.0.1:3307          │
+│              │                                │ db: inflashstory             │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ FRONTEND_URL │ Tidak ada                      │ ngrok URL aktif             │
+├──────────────┼───────────────────────────────┼──────────────────────────────┤
+│ CORS_ORIGINS │ localhost:5173,3000            │ + ngrok domain              │
+└──────────────┴───────────────────────────────┴──────────────────────────────┘
+
+
+════════════════════════════════════════════════════════════════════════════════
+ C. FILE BARU / HAPUS
+════════════════════════════════════════════════════════════════════════════════
+
+FILE BARU DI LOKAL (tidak ada di remote):
+  - frontend/.env                          (VITE_API_URL=/api)
+  - frontend/.env.production               (VITE_API_URL=/api)
+  - frontend/dist/assets/Template_Surat_FST.docx
+  - backend/create_template.py             (script generate template)
+  - Panduan_Testing_End_to_End_Inflashstory.pdf
+  - Skenario_QA_Inflashstory_Final.txt
+  - Start-FullStack.bat
+  - backend/Start-Backend.bat
+  - backend/inflashstory-api               (binary compiled)
+  - backend/inflashstory-api.exe           (binary compiled)
+  - backend/inventory-api.exe              (binary compiled)
+  - backend/uploads/documents/             (file test upload)
+
+FILE HAPUS DI LOKAL (ada di remote):
+  - backend/utils/scheduler.go             (digantikan cron.go)
+  - backend/utils/file_utils.go            (fungsi dipindah ke helpers.go)
+  - backend/inventory.db                   (SQLite -> MySQL)
+
+
+════════════════════════════════════════════════════════════════════════════════
+ D. DAFTAR BUG YANG SUDAH DIFIX DI MASING-MASING VERSI
+════════════════════════════════════════════════════════════════════════════════
+
+REMOTE (16 Audit Findings - FIXED di commit 4880c9c):
+  N1  - Validasi Anti-Bypass Otorisasi Super Admin
+  N2  - (internal)
+  N3  - Sinkronisasi Anti-Ghosting Cron
+  N4  - Anti-Race Condition Double Booking
+  N5  - Rute Private Pembatalan Booking
+  N6  - Rendering Tiket Dinamis
+  N7  - Format Tanggal Ketat
+  N8  - (internal)
+  N9  - Auto-Clean Up Scheduler
+  N10 - Anti-Race Condition Input Manual
+  N11 - Rekam Jejak Admin (approved_by)
+  N12 - Graceful Shutdown Cron
+  N13 - Deteksi File Asli (MIME Check)
+  N14 - Atomicity Gap
+  N15 - (internal)
+  N16 - Clean Code Deletion (DRY)
+
+LOKAL (Fix tambahan setelah remote):
+  ✅ Upload form styling (rounded-3xl, transition-colors)
+  ✅ Upload KTP preview (border, shadow, ring)
+  ✅ Proxy Vite /uploads (PDF/KTP bisa dibuka via browser)
+  ✅ AdminTransactionsPage URL fix (broken link)
+  ✅ Template_Surat_FST.docx valid 37KB (bisa dibuka di Word)
+  ✅ Admin role auto-fix (Super_Admin langsung di seed)
+  ✅ MySQL aktif via Laragon
+  ✅ Frontend .env config untuk production
+
+
+════════════════════════════════════════════════════════════════════════════════
+ E. HASIL E2E TESTING (Berdasarkan Panduan PDF)
+════════════════════════════════════════════════════════════════════════════════
+
+| No  | Test Case                       | Status | Keterangan                    |
+|-----|---------------------------------|--------|-------------------------------|
+| 1.1 | Tambah Ruangan baru             | ✅ PASS | Item tersimpan, category=Ruangan|
+| 1.2 | Akses Portal Booking User       | ✅ PASS | Form muncul, section upload ada|
+| 1.3 | Proteksi T&C (tombol disabled)  | ✅ PASS | Checkbox required             |
+| 1.4 | Unduh Template Surat            | ✅ PASS | File 37KB valid               |
+| 1.5 | Validasi Ukuran & Format File   | ✅ PASS | >5MB ditolak, format salah ditolak|
+| 1.6 | Eksekusi Reservasi Paralel      | ✅ PASS | Modal "Pengajuan Diproses"    |
+| 2.1 | RBAC UI Harden                  | ❌ FAIL | Role superadmin -> Super_Admin |
+| 3.1 | Auto Cleanup (Reject)           | ❌ FAIL | Gagal karena role mismatch     |
+| 3.2 | Anti-Ghosting                   | ⏳       | Belum di-test                 |
+
+
+════════════════════════════════════════════════════════════════════════════════
+ F. REKOMENDASI PENGGABUNGAN
+════════════════════════════════════════════════════════════════════════════════
+
+Yang Paling Ideal:
+  1. Reset ke remote (4880c9c) sebagai BASE
+  2. Tambahkan fix lokal satu per satu di atasnya:
+
+  AMBIL dari LOKAL (jangan dihapus):
+     - vite.config.js                          (proxy /uploads)
+     - AdminTransactionsPage.jsx                (URL fix upload links)
+     - BorrowFormPage.jsx + BookingModal.jsx    (styling upload rounded)
+     - Template_Surat_FST.docx                  (file valid 37KB)
+     - backend/main.go                          (bagian admin role auto-fix)
+     - backend/.env + frontend/.env             (MySQL + ngrok config)
+
+  JANGAN COPY dari lokal (pertahankan remote):
+     - Graceful shutdown                        (signal handling)
+     - Row-level locking clause.Locking         (anti race condition)
+     - Atomic return transaction                (anti file ghost)
+     - Rate limiting middleware                  (anti DDoS)
+     - file_utils.go                            (DRY file cleanup)
+
+  HASIL = BACKEND AMAN (race condition fix, atomic, graceful shutdown)
+          + FRONTEND CANTIK (upload styling, proxy, template valid)
+
+
+================================================================================
+ DISUSUN OLEH: Tim Developer Inflashstory
+ TANGGAL: 7 Juli 2026
+================================================================================

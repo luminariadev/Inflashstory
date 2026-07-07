@@ -1,0 +1,122 @@
+# Dokumen Skenario Pengujian Mutlak (QA/UAT) - Inflashstory
+**Versi:** Pasca-Audit (Resolusi 16 Bug)
+**Status:** SIAP PRODUKSI
+**Fokus:** Keamanan, Concurrency, Clean Code, & Otomatisasi
+
+Dokumen ini berisi panduan pengujian manual langkah demi langkah untuk memvalidasi bahwa seluruh celah keamanan dan logika sistem telah ditutup dengan standar Enterprise.
+
+---
+
+## 1. PENGUJIAN TINGKAT CRITICAL (Kritis)
+
+### Tes 1.1: Validasi Anti-Bypass Otorisasi (N1)
+**Tujuan:** Memastikan otorisasi Super Admin tidak dapat dipalsukan melalui manipulasi Header HTTP.
+1. Buka aplikasi Postman atau cURL.
+2. Buat request `PUT` ke `http://localhost:8080/api/admin/bookings/1/approve` (sesuaikan ID).
+3. **PENTING:** Kosongkan Token JWT/Bearer Token.
+4. Tambahkan Header manual: `Key: X-Admin-Username` dengan `Value: admin_fst`.
+5. Kirim request (Send).
+* **Ekspektasi Hasil:** Request ditolak dengan status HTTP **403 Forbidden** (Sesi admin tidak ditemukan).
+
+### Tes 1.2: Validasi Sinkronisasi Anti-Ghosting (N3)
+**Tujuan:** Memastikan pembatalan otomatis (cron) juga membebaskan status barang yang "disandera".
+1. Buka Web User, lakukan *Booking* untuk barang (contoh: "Proyektor A").
+2. Login Web Admin (Super Admin), klik *Approve* pada booking tersebut.
+3. Buka database (DB Browser for SQLite), ubah nilai `start_date` transaksi tersebut mundur 2 hari ke masa lalu, lalu simpan.
+4. Tunggu terminal Golang memproses *Cron Job*.
+5. Buka kembali Web Admin.
+* **Ekspektasi Hasil:**
+    * Daftar Booking: Status berubah menjadi *Cancelled*.
+    * Daftar Transaksi: Transaksi turunan berubah menjadi *Cancelled*.
+    * Inventaris: "Proyektor A" kembali berstatus *Available*.
+
+### Tes 1.3: Validasi Anti-Race Condition (Double Booking) (N4)
+**Tujuan:** Memastikan sistem mengunci transaksi (Row-Level Lock) jika dua admin mencoba menyetujui barang yang sama secara bersamaan.
+1. Buat dua *Booking* terpisah untuk 1 barang yang sama (contoh: "Kamera", stok=1) oleh dua mahasiswa berbeda.
+2. Buka Web Admin di dua browser berbeda (contoh: Chrome dan Edge).
+3. Di Chrome, klik *Approve* untuk Mahasiswa A (Jangan klik Submit dulu).
+4. Di Edge, klik *Approve* untuk Mahasiswa B (Jangan klik Submit dulu).
+5. Klik **Submit** di kedua browser secara hampir bersamaan.
+* **Ekspektasi Hasil:** Satu browser akan berhasil. Browser lainnya **WAJIB** gagal dengan pesan error: "Gagal menyetujui: Barang sudah dipinjam oleh pihak lain." Stok tidak boleh minus.
+
+---
+
+## 2. PENGUJIAN TINGKAT HIGH (Tinggi)
+
+### Tes 2.1: Validasi Rute Private Pembatalan (N5)
+**Tujuan:** Memastikan pengguna tidak bisa membatalkan *booking* milik orang lain tanpa sesi yang sah.
+1. Buka Postman/cURL.
+2. Tembak rute: `DELETE http://localhost:8080/api/user/bookings/1/cancel` (sesuaikan ID).
+3. Kosongkan semua Header otentikasi.
+4. Kirim request.
+* **Ekspektasi Hasil:** Ditolak dengan status HTTP **401 Unauthorized** atau **403 Forbidden**.
+
+### Tes 2.2: Validasi Rendering Tiket Dinamis (N6)
+**Tujuan:** Memastikan pop-up tiket sukses menampilkan data asli dari server.
+1. Buka Web User dan selesaikan satu proses *booking* hingga sukses.
+* **Ekspektasi Hasil:** Pada tiket ungu yang muncul, ID Transaksi harus berupa kode asli (misal: `TRX-123...`), bukan teks *dummy* (`PROSES-ACC`).
+
+### Tes 2.3: Validasi Format Tanggal Ketat (N7)
+**Tujuan:** Mencegah masuknya data tanggal yang korup (garbage data).
+1. Buka Postman, tembak rute `POST /api/bookings`.
+2. Masukkan payload JSON, tetapi isi properti `"start_date"` dengan teks acak: `"besok aja"`.
+3. Kirim request.
+* **Ekspektasi Hasil:** Ditolak dengan status HTTP **400 Bad Request** ("Format tanggal tidak valid"). Data tidak tersimpan ke database.
+
+### Tes 2.4: Validasi Auto-Clean Up Scheduler (N9)
+**Tujuan:** Memastikan penghapusan otomatis transaksi yang kadaluwarsa juga menghapus file fisik dokumen.
+1. Buat transaksi *On-The-Spot* (OTS), upload file *dummy* PDF/KTP.
+2. Pastikan file tersimpan di `./uploads/documents/`.
+3. Buka database, ubah waktu transaksi menjadi kadaluwarsa (mundur 2 hari).
+4. Tunggu *scheduler* berjalan hingga status berubah menjadi *Rejected*.
+* **Ekspektasi Hasil:** File *dummy* di `./uploads/documents/` **WAJIB HILANG** secara fisik.
+
+---
+
+## 3. PENGUJIAN TINGKAT MEDIUM (Menengah)
+
+### Tes 3.1: Validasi Anti-Race Condition Input Manual (N10)
+**Tujuan:** Memastikan penguncian data (Locking) juga berlaku untuk peminjaman rute manual Admin.
+1. Buka Web Admin di dua browser berbeda.
+2. Buka form "Tambah Transaksi Manual" di keduanya, pilih barang yang sama (stok=1).
+3. Isi data form (nama peminjam berbeda).
+4. Klik **Simpan** secara hampir bersamaan di kedua browser.
+* **Ekspektasi Hasil:** Hanya satu yang berhasil. Yang lain akan ditolak dengan notifikasi: "Item sedang tidak tersedia".
+
+### Tes 3.2: Validasi Rekam Jejak Admin (N11)
+**Tujuan:** Memastikan sistem mencatat identitas Admin yang melakukan persetujuan.
+1. Login Web Admin (misal akun Bu Anit), lakukan *Approve* pada sebuah booking.
+2. Buka database (DB Browser), periksa tabel `bookings`.
+* **Ekspektasi Hasil:** Kolom `approved_by` pada baris transaksi tersebut harus terisi dengan angka ID akun Bu Anit (tidak boleh kosong/NULL).
+
+### Tes 3.3: Validasi Graceful Shutdown (N12)
+**Tujuan:** Mencegah kebocoran memori (Goroutine Leak) saat server dimatikan.
+1. Pada terminal Golang (`go run main.go`), tekan `Ctrl + C`.
+* **Ekspektasi Hasil:** Terminal memunculkan teks `[CRON] Shutting down anti-ghosting job...` sebelum server sepenuhnya mati.
+
+### Tes 3.4: Validasi Deteksi File Asli (MIME Check) (N13)
+**Tujuan:** Mencegah eksploitasi upload file berekstensi palsu.
+1. Buat file teks biasa (misal di Notepad), isi dengan teks "ini virus", lalu *Save As* menjadi `hacker.pdf`.
+2. Di form *Booking* Web User, coba upload file `hacker.pdf` tersebut.
+3. Klik Submit.
+* **Ekspektasi Hasil:** Ditolak dengan pesan error **400**: "File surat permohonan harus berupa dokumen PDF murni (MIME mismatch)". File tidak boleh masuk ke server.
+
+*(Catatan N14: Atomicity Gap telah diuji melalui review statis di mana perintah penghapusan file wajib dieksekusi di dalam blok sukses database).*
+
+---
+
+## 4. PENGUJIAN TINGKAT LOW (Rendah / Clean Code)
+
+*(Persiapan: Buka folder fisik `./uploads/documents/` untuk memantau penghapusan secara real-time).*
+
+### Tes 4.1: Validasi Clean Code Deletion - Rute Reject (N16)
+**Tujuan:** Memastikan fungsi DRY sentral berhasil menghapus file saat transaksi ditolak.
+1. Lakukan *Booking* baru beserta upload dokumen.
+2. Login Web Admin, klik **Tolak (Reject)** pada booking tersebut.
+* **Ekspektasi Hasil:** File PDF dan KTP yang baru diupload **WAJIB HILANG** dari folder fisik seketika.
+
+### Tes 4.2: Validasi Clean Code Deletion - Rute Return (N16)
+**Tujuan:** Memastikan fungsi DRY sentral berhasil menghapus file saat barang dikembalikan.
+1. Buat "Transaksi Manual" via Web Admin beserta upload dokumen.
+2. Pada tabel Transaksi, klik **Kembalikan (Return)** pada transaksi tersebut.
+* **Ekspektasi Hasil:** File PDF dan KTP dari transaksi manual tersebut **WAJIB HILANG** dari folder fisik seketika.

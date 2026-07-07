@@ -28,7 +28,7 @@ func SetupRoutes(r *gin.Engine) {
 		api.GET("/transactions/status", controllers.GetTransactionsByNIM)
 
 		// ✅ FST INTEGRATION: Endpoint Upload File (Surat & KTP)
-		api.POST("/upload", controllers.UploadDocument)
+		api.POST("/upload", middleware.UploadRateLimit(), controllers.UploadDocument)
 
 		// Stats (public - untuk info website)
 		api.GET("/stats", controllers.GetStats)

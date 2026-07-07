@@ -23,7 +23,7 @@ import (
 func init() {
 	// Load .env file
 	if err := godotenv.Load(".env"); err != nil {
-		log.Println("âš ï¸ .env file not found, using environment variables")
+		log.Println("⚠️ .env file not found, using environment variables")
 	}
 	config.InitDB()
 }
@@ -63,7 +63,7 @@ func seedDatabase() {
 		for _, item := range items {
 			db.Create(&item)
 		}
-		log.Println("âœ… Seed items completed!")
+		log.Println("✅ Seed items completed!")
 	}
 
 	// Seed Admin default
@@ -76,12 +76,16 @@ func seedDatabase() {
 			Password:  string(hashedPassword),
 			Email:     "admin@inflashstory.com",
 			Name:      "Administrator",
-			Role:      "superadmin",
+			Role:      "Super_Admin",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
 		db.Create(&admin)
-		log.Println("âœ… Default admin created! Username: admin, Password: admin123")
+		log.Println("✅ Default admin created! Username: admin, Password: admin123")
+	} else {
+		// Fix: Update admin role to Super_Admin if it's not correct
+		db.Model(&models.Admin{}).Where("username = ?", "admin").Update("role", "Super_Admin")
+		log.Println("✅ Admin role ensured to be Super_Admin")
 	}
 }
 

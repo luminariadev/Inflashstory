@@ -24,6 +24,9 @@ const BorrowFormPage = () => {
   const [activeBookings, setActiveBookings] = useState([])
   const [showSuccessModal, setShowSuccessModal] = useState(false) // ✅ TAHAN REDIRECT BUAT ANAK OTS
 
+  // ✅ FIX H6: Track object URLs untuk cleanup memory leak
+  const [idPhotoPreviewUrl, setIdPhotoPreviewUrl] = useState('')
+
   const [formData, setFormData] = useState({
     borrower_name: '',
     identity_no: '',
@@ -50,6 +53,15 @@ const BorrowFormPage = () => {
 
     return () => observer.disconnect()
   }, [])
+
+  // ✅ FIX H6: Cleanup object URLs on component unmount - run once on unmount
+  useEffect(() => {
+    return () => {
+      if (idPhotoPreviewUrl) {
+        URL.revokeObjectURL(idPhotoPreviewUrl)
+      }
+    }
+  }, [idPhotoPreviewUrl])
 
   useEffect(() => {
     if (!itemId) {
@@ -192,15 +204,23 @@ const BorrowFormPage = () => {
     e.preventDefault()
 
     // Cegah submit kalau barang butuh Surat PDF
-    if (item?.require_letter && !formData.attachment) {
-      toast.error('Surat peminjaman (PDF) wajib diunggah!')
-      return
-    }
-
-    // Cegah submit kalau barang butuh KTP/KTM tapi foto belum ada
-    if (item?.required_id && item.required_id !== 'none' && !formData.id_photo) {
-      toast.error(`Foto ${item.required_id.toUpperCase()} wajib diunggah!`)
-      return
+    // ✅ FIX: Cek category_type 'Ruangan' SEPERTI backend (transaction_controller.go line 77)
+    const isRuanganOrRequireLetter = item?.category_type === 'Ruangan' || item?.require_letter;
+    if (isRuanganOrRequireLetter) {
+      if (!formData.attachment) {
+        toast.error('Surat peminjaman (PDF) wajib diunggah!')
+        return
+      }
+      if (!formData.id_photo) {
+        toast.error('Foto KTP wajib diunggah!')
+        return
+      }
+    } else {
+      // Cegah submit kalau barang butuh KTP/KTM tapi foto belum ada
+      if (item?.required_id && item.required_id !== 'none' && !formData.id_photo) {
+        toast.error(`Foto ${item.required_id.toUpperCase()} wajib diunggah!`)
+        return
+      }
     }
 
     if (!formData.start_date || !formData.est_return_date) {
@@ -541,33 +561,38 @@ const BorrowFormPage = () => {
               <label className={labelClass}>
                 Unggah Foto {item.required_id.toUpperCase()} (Jaminan) <span className="text-red-500">*</span>
               </label>
-              <div className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-xl ${isDark ? 'border-white/20 hover:border-primary/50 bg-[#1e1f23]/50' : 'border-gray-300 hover:border-primary/50 bg-gray-50'}`}>
+              <div className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-3xl ${isDark ? 'border-white/20 hover:border-primary/50 bg-[#1e1f23]/50' : 'border-gray-300 hover:border-primary/50 bg-gray-50'} transition-colors duration-300`}>
                 <div className="space-y-1 text-center w-full">
                   {formData.id_photo ? (
                     <div className="flex flex-col items-center">
-                      <img src={formData.id_photo instanceof File ? URL.createObjectURL(formData.id_photo) : formData.id_photo} alt="Preview ID" className="h-40 w-auto object-contain mb-3 rounded-lg border border-gray-500/30 shadow-md" />
-                      <button type="button" onClick={() => setFormData({ ...formData, id_photo: '' })} className="text-sm px-4 py-1.5 bg-red-500/10 text-red-500 rounded-lg font-medium hover:bg-red-500/20 transition">Hapus Foto</button>
+                      <img src={idPhotoPreviewUrl || formData.id_photo} alt="Preview ID" className="h-44 w-auto max-w-full object-contain mb-3 rounded-2xl border-2 border-primary/30 shadow-lg shadow-primary/10 ring-2 ring-white/5" />
+                      <button type="button" onClick={() => {
+                        setIdPhotoPreviewUrl('')
+                        setFormData({ ...formData, id_photo: '' })
+                      }} className="text-sm px-4 py-1.5 bg-red-500/10 text-red-500 rounded-xl font-medium hover:bg-red-500/20 transition">Hapus Foto</button>
                     </div>
                   ) : (
                     <>
                       <Icon name="badge" className={`mx-auto h-12 w-12 ${isDark ? 'text-slate-400' : 'text-gray-400'}`} />
                       <div className="flex text-sm text-gray-600 justify-center mt-2">
-                        <label className="relative cursor-pointer rounded-md font-medium text-primary hover:text-primary/80 focus-within:outline-none">
+                        <label className="relative cursor-pointer rounded-xl font-medium text-primary hover:text-primary/80 focus-within:outline-none">
                           <span>Klik untuk Upload File</span>
                           <input type="file" accept="image/*" className="sr-only" onChange={(e) => {
                             const file = e.target.files[0];
                             if (file) {
-                              if (file.size > 2 * 1024 * 1024) { // Batas 2MB
-                                toast.error('Ukuran maksimal foto 2MB bro!');
+                              if (file.size > 5 * 1024 * 1024) { // Batas 5MB - match backend
+                                toast.error('Ukuran maksimal foto 5MB!');
                                 e.target.value = '';
                                 return;
                               }
+                              const objectUrl = URL.createObjectURL(file)
+                              setIdPhotoPreviewUrl(objectUrl)
                               setFormData({ ...formData, id_photo: file });
                             }
                           }} />
                         </label>
                       </div>
-                      <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>PNG, JPG, atau JPEG (Maks 2MB)</p>
+                      <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>PNG, JPG, atau JPEG (Maks 5MB)</p>
                     </>
                   )}
                 </div>
@@ -581,7 +606,7 @@ const BorrowFormPage = () => {
               <label className={labelClass}>
                 Unggah Surat Peminjaman Resmi <span className="text-red-500">*</span>
               </label>
-              <div className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-xl ${isDark ? 'border-white/20 hover:border-primary/50 bg-[#1e1f23]/50' : 'border-gray-300 hover:border-primary/50 bg-gray-50'}`}>
+              <div className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-3xl ${isDark ? 'border-white/20 hover:border-primary/50 bg-[#1e1f23]/50' : 'border-gray-300 hover:border-primary/50 bg-gray-50'} transition-colors duration-300`}>
                 <div className="space-y-1 text-center w-full">
                   {formData.attachment ? (
                     <div className="flex flex-col items-center">
@@ -589,7 +614,7 @@ const BorrowFormPage = () => {
                         <Icon name="picture_as_pdf" />
                         <span className="text-sm font-medium">{formData.attachment instanceof File ? formData.attachment.name : 'Surat_Terlampir.pdf'}</span>
                       </div>
-                      <button type="button" onClick={() => setFormData({ ...formData, attachment: '' })} className="text-sm px-4 py-1.5 bg-red-500/10 text-red-500 rounded-lg font-medium hover:bg-red-500/20 transition">Hapus File</button>
+                      <button type="button" onClick={() => setFormData({ ...formData, attachment: '' })} className="text-sm px-4 py-1.5 bg-red-500/10 text-red-500 rounded-xl font-medium hover:bg-red-500/20 transition">Hapus File</button>
                     </div>
                   ) : (
                     <>
@@ -600,8 +625,8 @@ const BorrowFormPage = () => {
                           <input type="file" accept="application/pdf" className="sr-only" onChange={(e) => {
                             const file = e.target.files[0];
                             if (file) {
-                              if (file.size > 3 * 1024 * 1024) { // Batas 3MB buat PDF
-                                toast.error('Ukuran maksimal PDF 3MB bro!');
+                              if (file.size > 5 * 1024 * 1024) { // Batas 5MB - match backend
+                                toast.error('Ukuran maksimal PDF 5MB!');
                                 e.target.value = '';
                                 return;
                               }
@@ -610,7 +635,7 @@ const BorrowFormPage = () => {
                           }} />
                         </label>
                       </div>
-                      <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Hanya format PDF (Maks 3MB)</p>
+                      <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Hanya format PDF (Maks 5MB)</p>
                     </>
                   )}
                 </div>

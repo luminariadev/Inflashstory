@@ -130,7 +130,7 @@ const AdminTransactionsPage = () => {
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] })
     
     const token = localStorage.getItem('adminToken')
-    if (token !== 'admin-secret-key') {
+    if (!token) {
       window.location.href = '/admin/login'
     } else {
       fetchTransactions()
@@ -263,9 +263,7 @@ const AdminTransactionsPage = () => {
 
   const fetchTransactions = async () => {
     try {
-      const response = await API.get('/admin/transactions', {
-        headers: { 'X-Admin-Token': 'admin-secret-key' }
-      })
+      const response = await API.get('/admin/transactions')
       setTransactions(response.data.data)
     } catch (error) {
       toast.error('Gagal memuat data transaksi')
@@ -279,9 +277,7 @@ const AdminTransactionsPage = () => {
       // ✅ Bikin teks dinamis: Kalau admin ngosongin, otomatis diisi teks default positif
       const finalNotes = returnNotes.trim() ? returnNotes : 'Barang dikembalikan dalam kondisi lengkap dan baik.'
 
-      await API.post(`/admin/return/${transactionId}`, { notes: finalNotes }, {
-        headers: { 'X-Admin-Token': 'admin-secret-key' }
-      })
+      await API.post(`/admin/return/${transactionId}`, { notes: finalNotes })
       toast.success('Barang berhasil dikembalikan')
       setShowReturnModal(null)
       setReturnNotes('') // Reset state biar ga nyangkut ke transaksi lain
@@ -339,7 +335,7 @@ const AdminTransactionsPage = () => {
           suratData.append('file', manualForm.attachment);
           suratData.append('type', 'surat');
           uploadPromises.push(
-            API.post('/upload', suratData, { headers: { 'Content-Type': 'multipart/form-data' } })
+            API.post('/admin/upload', suratData, { headers: { 'Content-Type': 'multipart/form-data' } })
               .then(res => { finalSuratUrl = res.data.file_path })
           );
         }
@@ -349,7 +345,7 @@ const AdminTransactionsPage = () => {
           ktpData.append('file', manualForm.id_photo);
           ktpData.append('type', 'ktp');
           uploadPromises.push(
-            API.post('/upload', ktpData, { headers: { 'Content-Type': 'multipart/form-data' } })
+            API.post('/admin/upload', ktpData, { headers: { 'Content-Type': 'multipart/form-data' } })
               .then(res => { finalKtpUrl = res.data.file_path })
           );
         }
@@ -365,9 +361,7 @@ const AdminTransactionsPage = () => {
       delete payload.attachment;
       delete payload.id_photo;
 
-      await API.post('/admin/borrow/manual', payload, {
-        headers: { 'X-Admin-Token': 'admin-secret-key' }
-      })
+      await API.post('/admin/borrow/manual', payload)
       toast.success('Peminjaman manual berhasil dicatat!')
       setShowManualModal(false)
       setManualForm({ item_id: '', borrower_name: '', identity_no: '', phone: '', purpose: '', type: 'ots', borrow_date: null, est_return_date: null, id_photo: null, attachment: null })
@@ -448,8 +442,6 @@ const AdminTransactionsPage = () => {
         action: action,
         notes: rejectReason,
         trx_type: getTransactionType(trx) // ✅ TAMBAHIN INI: Teriak ke Golang ini OTS apa Booking!
-      }, {
-        headers: { 'X-Admin-Token': 'admin-secret-key' }
       })
       
       // ✅ FIX TOAST ALERT: Pisah teks kondisi biar gak typo "ditolak" pas Serahkan Barang
@@ -538,6 +530,7 @@ const AdminTransactionsPage = () => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(url)
     
     toast.success('Laporan berhasil diunduh!')
   }
@@ -810,7 +803,7 @@ const AdminTransactionsPage = () => {
                             </a>
                           )}
                           {trx.ktp_url && (
-                            <a href={`${API.defaults.baseURL.replace('/api', '')}${trx.ktp_url}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-500 hover:underline flex items-center gap-1 w-max">
+                            <a href={`${API.defaults.baseURL.replace('/api', '')}/${trx.ktp_url}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-500 hover:underline flex items-center gap-1 w-max">
                               <Icon name="badge" className="text-[12px]" /> Lihat KTP
                             </a>
                           )}
@@ -869,7 +862,7 @@ const AdminTransactionsPage = () => {
                           )}
                           
                           {/* ✅ FIX KTP BOCOR: Cuma munculin tombol KTP/KTM kalau item-nya emang butuh! */}
-                          {(trx.attachment || (trx.item?.required_id && trx.item.required_id !== 'none' && (trx.borrower?.ktp_photo || trx.borrower?.ktm_photo))) && (
+                          {(trx.surat_url || trx.ktp_url || trx.attachment) && (
                             <button onClick={() => setShowAttachmentModal(trx)} className="bg-blue-500/20 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-500/30 transition" title="Lihat Lampiran">
                               <Icon name="attachment" className="text-base" />
                             </button>
@@ -924,12 +917,12 @@ const AdminTransactionsPage = () => {
                       <p className={`text-sm font-medium ${titleClass}`}>{trx.borrower?.name || '-'}</p>
                       <div className="flex flex-col gap-1 mt-1">
                         {trx.surat_url && (
-                          <a href={`${API.defaults.baseURL.replace('/api', '')}${trx.surat_url}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline flex items-center gap-1">
+                          <a href={`${API.defaults.baseURL.replace('/api', '')}/${trx.surat_url}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline flex items-center gap-1">
                             <Icon name="description" className="text-[12px]" /> Lihat Surat
                           </a>
                         )}
                         {trx.ktp_url && (
-                          <a href={`${API.defaults.baseURL.replace('/api', '')}${trx.ktp_url}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline flex items-center gap-1">
+                          <a href={`${API.defaults.baseURL.replace('/api', '')}/${trx.ktp_url}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline flex items-center gap-1">
                             <Icon name="badge" className="text-[12px]" /> Lihat KTP
                           </a>
                         )}
@@ -966,7 +959,7 @@ const AdminTransactionsPage = () => {
                       Kembalikan
                     </button>
                   )}
-                  {(trx.borrower?.ktp_photo || trx.borrower?.ktm_photo || trx.attachment) && (
+                  {(trx.surat_url || trx.ktp_url || trx.attachment) && (
                     <button onClick={() => setShowAttachmentModal(trx)} className="flex-1 bg-blue-500/20 text-blue-600 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-500/30 transition flex items-center justify-center gap-2">
                       <Icon name="attachment" className="text-base" /> Lampiran
                     </button>
@@ -1211,13 +1204,13 @@ const AdminTransactionsPage = () => {
             
             <div className="space-y-6">
               {/* Cek Foto KTP / KTM (Termasuk Fallback Legacy Jika API belum json:"-") */}
-              {(showAttachmentModal.ktp_url || showAttachmentModal.borrower?.ktp_photo || showAttachmentModal.borrower?.ktm_photo) && (
+              {showAttachmentModal.ktp_url && (
                 <div>
                   <p className={`text-sm font-semibold mb-2 ${titleClass}`}>
                     Foto Jaminan Identitas
                   </p>
                   <img 
-                    src={showAttachmentModal.ktp_url ? `${API.defaults.baseURL.replace('/api', '')}/${showAttachmentModal.ktp_url}` : (showAttachmentModal.borrower?.ktp_photo || showAttachmentModal.borrower?.ktm_photo)} 
+                    src={`${API.defaults.baseURL.replace('/api', '')}/${showAttachmentModal.ktp_url}`} 
                     alt="Foto Jaminan" 
                     className="w-full rounded-xl border border-gray-500/30 shadow-md object-contain max-h-60 bg-gray-100 dark:bg-black/20"
                   />

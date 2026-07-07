@@ -258,15 +258,14 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
       if (response.data.status === 'success') {
         // ✅ Alert dilamain jadi 5 detik (5000ms)
         toast.success(`Booking sukses! Silakan simpan resi Anda.`, { duration: 5000 })
-        
-        // ✅ FIX TIKET GA MUNCUL: 
-        // Mengambil data asli dari response.data.transaction sesuai payload backend
-        const ticketData = response.data.transaction || {
+
+        // ✅ FIX R14: Optional chaining to handle empty object {}
+        const ticketData = response.data.transaction?.id ? response.data.transaction : {
           id: 'PROSES-ACC',
           transaction_code: 'TRX-MENUNGGU-ACC'
         }
-        
-        setSuccessTicket(ticketData) 
+
+        setSuccessTicket(ticketData)
         setSubmitting(false)
       }
     } catch (error) {
@@ -524,30 +523,76 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>Upload KTP (JPG/PNG) <span className="text-red-500">*</span></label>
-                    <input type="file" accept="image/jpeg, image/png, image/jpg" required onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file && file.size <= 5*1024*1024) {
-                          setFormData({...formData, id_photo: file});
-                        } else { toast.error('Maks 5MB dan harus format gambar'); e.target.value=''; }
-                      }} className={`w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 ${isDark ? 'text-slate-300' : 'text-gray-600'}`} />
+                    <div className={`mt-1 flex justify-center px-4 pt-4 pb-5 border-2 border-dashed rounded-3xl ${isDark ? 'border-white/20 hover:border-primary/50 bg-[#1e1f23]/50' : 'border-gray-300 hover:border-primary/50 bg-gray-50'} transition-colors duration-300`}>
+                      <div className="space-y-1 text-center w-full">
+                        {formData.id_photo ? (
+                          <div className="flex flex-col items-center">
+                            <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-green-500/10 text-green-500 rounded-xl border border-green-500/20">
+                              <Icon name="check_circle" className="text-sm" />
+                              <span className="text-xs font-medium">{formData.id_photo instanceof File ? formData.id_photo.name : 'KTP_Terlampir'}</span>
+                            </div>
+                            <button type="button" onClick={() => setFormData({ ...formData, id_photo: '' })} className="text-xs px-3 py-1 bg-red-500/10 text-red-500 rounded-xl font-medium hover:bg-red-500/20 transition">Hapus</button>
+                          </div>
+                        ) : (
+                          <>
+                            <Icon name="badge" className={`mx-auto h-10 w-10 ${isDark ? 'text-slate-400' : 'text-gray-400'}`} />
+                            <div className="flex text-sm text-gray-600 justify-center mt-1">
+                              <label className="relative cursor-pointer rounded-xl font-medium text-primary hover:text-primary/80 focus-within:outline-none">
+                                <span>Pilih File KTP</span>
+                                <input type="file" accept="image/jpeg, image/png, image/jpg" className="sr-only" required onChange={(e) => {
+                                  const file = e.target.files[0];
+                                  if (file && file.size <= 5*1024*1024) {
+                                    setFormData({...formData, id_photo: file});
+                                  } else { toast.error('Maks 5MB dan harus format gambar'); e.target.value=''; }
+                                }} />
+                              </label>
+                            </div>
+                            <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>JPG/PNG (Maks 5MB)</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div>
                     <label className={labelClass}>Upload Surat PDF <span className="text-red-500">*</span></label>
-                    <a 
-                      href="/assets/Template_Surat_FST.docx" 
-                      download 
-                      className="inline-flex items-center gap-1 mb-3 text-xs font-medium text-primary hover:text-blue-500 hover:underline transition"
+                    <a
+                      href="/assets/Template_Surat_FST.docx"
+                      download
+                      className="inline-flex items-center gap-1 mb-2 text-xs font-medium text-primary hover:text-blue-500 hover:underline transition"
                     >
-                      <Icon name="download" className="text-[14px]" /> 
+                      <Icon name="download" className="text-[14px]" />
                       Unduh Template Surat
                     </a>
-                    <input type="file" accept=".pdf" required onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file && file.size <= 5*1024*1024) {
-                          setFormData({...formData, attachment: file});
-                        } else { toast.error('Maks 5MB dan harus format PDF'); e.target.value=''; }
-                      }} className={`w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-500/10 file:text-red-500 hover:file:bg-red-500/20 ${isDark ? 'text-slate-300' : 'text-gray-600'}`} />
+                    <div className={`mt-0 flex justify-center px-4 pt-4 pb-5 border-2 border-dashed rounded-3xl ${isDark ? 'border-white/20 hover:border-primary/50 bg-[#1e1f23]/50' : 'border-gray-300 hover:border-primary/50 bg-gray-50'} transition-colors duration-300`}>
+                      <div className="space-y-1 text-center w-full">
+                        {formData.attachment ? (
+                          <div className="flex flex-col items-center">
+                            <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-red-500/10 text-red-500 rounded-xl border border-red-500/20">
+                              <Icon name="picture_as_pdf" className="text-sm" />
+                              <span className="text-xs font-medium">{formData.attachment instanceof File ? formData.attachment.name : 'Surat_Terlampir.pdf'}</span>
+                            </div>
+                            <button type="button" onClick={() => setFormData({ ...formData, attachment: '' })} className="text-xs px-3 py-1 bg-red-500/10 text-red-500 rounded-xl font-medium hover:bg-red-500/20 transition">Hapus</button>
+                          </div>
+                        ) : (
+                          <>
+                            <Icon name="upload_file" className={`mx-auto h-10 w-10 ${isDark ? 'text-slate-400' : 'text-gray-400'}`} />
+                            <div className="flex text-sm text-gray-600 justify-center mt-1">
+                              <label className="relative cursor-pointer rounded-xl font-medium text-primary hover:text-primary/80 focus-within:outline-none">
+                                <span>Pilih File PDF</span>
+                                <input type="file" accept=".pdf" className="sr-only" required onChange={(e) => {
+                                  const file = e.target.files[0];
+                                  if (file && file.size <= 5*1024*1024) {
+                                    setFormData({...formData, attachment: file});
+                                  } else { toast.error('Maks 5MB dan harus format PDF'); e.target.value=''; }
+                                }} />
+                              </label>
+                            </div>
+                            <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Hanya PDF (Maks 5MB)</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

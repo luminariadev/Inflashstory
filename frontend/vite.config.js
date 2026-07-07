@@ -65,12 +65,16 @@ export default defineConfig({
     port: 5173,
     open: true,
     allowedHosts: [
-      'encourage-village-purchase.ngrok-free.dev', // Link ngrok lu
-      '.ngrok-free.dev' 
+      'https://unbitter-diffusely-lionel.ngrok-free.dev',
+      '.ngrok-free.dev'
     ],
     // âœ… SETTINGAN PROXY LU AMAN GAK KESENTUH
     proxy: {
       '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/uploads': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       }
