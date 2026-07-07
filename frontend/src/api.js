@@ -12,6 +12,29 @@ const API = axios.create({
   },
 })
 
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem('adminToken')
+  const adminDataStr = localStorage.getItem('adminData')
+
+  if (token) {
+    config.headers['X-Admin-Token'] = token
+  }
+
+  // Send X-Admin-Username for admin routes
+  if (adminDataStr && adminDataStr !== 'null') {
+    try {
+      const adminData = JSON.parse(adminDataStr)
+      if (adminData && typeof adminData === 'object' && adminData.username) {
+        config.headers['X-Admin-Username'] = adminData.username
+      }
+    } catch (e) {
+      // ignore JSON parse errors
+    }
+  }
+
+  return config
+})
+
 API.interceptors.response.use(
   (response) => response,
   (error) => {
