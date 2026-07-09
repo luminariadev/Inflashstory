@@ -16,7 +16,7 @@ const ItemCard = ({ item, index, isDark = true }) => {
 
   // ✅ FETCH BOOKING DI BACKGROUND (Cuma jalan buat barang yg Available)
   useEffect(() => {
-    if (item.status === 'available') {
+    if (item.status === 'available' || item.status === 'borrowed' || item.status === 'reserved') {
       API.get(`/items/${item.id}/bookings`)
         .then(res => setActiveBookings(res.data.data || []))
         .catch(() => {}) 
@@ -25,7 +25,9 @@ const ItemCard = ({ item, index, isDark = true }) => {
 
   // ✅ FIX UX: PENGHITUNG SISA STOK (VERSI HARI INI)
   let availableStock = item.total_stock || 1
-  if (activeBookings.length > 0) {
+  if (item.status === 'borrowed' || item.status === 'reserved') {
+    availableStock = 0
+  } else if (activeBookings.length > 0) {
     const todayString = new Date().toDateString()
     const now = new Date().getTime()
     
@@ -69,11 +71,13 @@ const ItemCard = ({ item, index, isDark = true }) => {
           />
           <div className="absolute top-3 right-3">
             {/* ✅ JIKA TERSEDIA TAPI ADA BOOKING, LABEL BERUBAH! */}
-            <StatusBadge 
-              status={item.status} 
-              customLabel={item.status === 'available' && activeBookings.length > 0 ? 'Ada Antrean' : undefined}
-              isDark={isDark} 
-            />
+            {item.status !== 'reserved' && item.status !== 'pending' && (
+              <StatusBadge 
+                status={item.status} 
+                customLabel={item.status === 'available' && activeBookings.length > 0 ? 'Ada Antrean' : undefined}
+                isDark={isDark} 
+              />
+            )}
           </div>
         </div>
 
@@ -120,7 +124,7 @@ const ItemCard = ({ item, index, isDark = true }) => {
             <div className="flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-lg p-2 mt-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-orange-500">
                 <Icon name="inventory_2" className="text-sm" />
-                <span>Stok Habis (0)</span>
+                <span>Sisa Stok: {availableStock} / {item.total_stock || 1} Unit</span>
               </div>
               <button
                 onClick={() => setShowInfoModal(true)}
@@ -135,16 +139,35 @@ const ItemCard = ({ item, index, isDark = true }) => {
           )}
         </div>
 
-        {/* Actions - Hanya tampilkan jika status 'available' */}
-        {isAvailable ? (
+        {/* Actions - Dekopling PINJAM dan BOOKING */}
+        {(item.status === 'available' || item.status === 'borrowed' || item.status === 'reserved') ? (
           <div className="flex gap-3 pt-2 border-t border-white/10 mt-2">
-            <button 
-              onClick={() => setShowBorrowModal(true)}
-              className="flex-1 bg-primary text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:brightness-110 transition-all"
-            >
-              <Icon name="qr_code_scanner" className="text-base" />
-              PINJAM
-            </button>
+            {(item.category?.toLowerCase().includes('ruang') || item.category?.toLowerCase() === 'aula' || item.category_type?.toLowerCase() === 'ruangan') ? (
+              <button 
+                disabled
+                className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed ${isDark ? 'bg-white/5 text-slate-500' : 'bg-gray-100 text-gray-400'}`}
+              >
+                <Icon name="lock" className="text-base" />
+                HANYA BOOKING
+              </button>
+            ) : availableStock > 0 ? (
+              <button 
+                onClick={() => setShowBorrowModal(true)}
+                className="flex-1 bg-primary text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:brightness-110 transition-all"
+              >
+                <Icon name="qr_code_scanner" className="text-base" />
+                PINJAM
+              </button>
+            ) : (
+              <button 
+                disabled
+                className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed ${isDark ? 'bg-white/5 text-slate-500' : 'bg-gray-100 text-gray-400'}`}
+              >
+                <Icon name="qr_code_scanner" className="text-base" />
+                KOSONG (OTS)
+              </button>
+            )}
+            
             <button 
               onClick={() => setShowBookingModal(true)}
               className={`flex-1 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all ${buttonSecondaryClass}`}
@@ -153,17 +176,15 @@ const ItemCard = ({ item, index, isDark = true }) => {
               BOOKING
             </button>
           </div>
-        ) : isBorrowedOrMaintenance ? (
+        ) : (
           <div className="pt-2 border-t border-white/10 mt-2">
-            <div className={`text-center py-2.5 rounded-xl text-sm font-medium ${isDark ? 'bg-white/5 text-slate-400' : 'bg-gray-100 text-gray-500'}`}>
-              {item.status === 'borrowed' && '🔒 Sedang Dipinjam'}
-              {item.status === 'reserved' && '⏳ Sedang Diproses (Menunggu ACC)'} {/* ✅ TAMBAHIN TEKS INI */}
+            <div className={`text-center py-2.5 rounded-xl text-sm font-medium ${isDark ? 'bg-white/5 text-slate-500' : 'bg-gray-100 text-gray-400'}`}>
               {item.status === 'maintenance' && '🔧 Dalam Perawatan'}
               {item.status === 'damaged' && '⚠️ Barang Rusak'}
               {item.status === 'lost' && '❌ Barang Hilang'}
             </div>
           </div>
-        ) : null}
+        )}
       </div>
 
       <BorrowModal 

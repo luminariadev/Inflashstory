@@ -26,7 +26,6 @@ const ItemListPage = () => {
   const filters = [
     { value: 'all', label: 'SEMUA', icon: 'inventory_2' },
     { value: 'available', label: 'TERSEDIA', icon: 'check_circle' },
-    { value: 'reserved', label: 'MENUNGGU ACC', icon: 'hourglass_empty' }, // ✅ TAMBAHIN INI
     { value: 'borrowed', label: 'DIPINJAM', icon: 'sync_alt' },
     { value: 'damaged', label: 'RUSAK', icon: 'error' },
     { value: 'maintenance', label: 'PERAWATAN', icon: 'build' },
@@ -101,8 +100,8 @@ const ItemListPage = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="space-y-1">
-            <h2 className={`text-3xl font-bold ${titleClass}`}>Daftar Barang Inventaris</h2>
-            <p className={`text-sm ${textClass}`}>Kelola dan telusuri seluruh aset kampus dengan mudah.</p>
+            <h2 className={`text-3xl font-bold ${titleClass}`}>Daftar Inventaris & Fasilitas</h2>
+            <p className={`text-sm ${textClass}`}>Kelola dan telusuri seluruh aset Fakultas Sains dan Teknologi dengan mudah.</p>
           </div>
           <div className="relative w-full md:w-72">
             <Icon name="search" className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-400' : 'text-gray-400'}`} />

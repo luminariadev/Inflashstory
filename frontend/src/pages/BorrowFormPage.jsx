@@ -10,6 +10,9 @@ import 'react-datepicker/dist/react-datepicker.css'
 import { id } from 'date-fns/locale'
 registerLocale('id', id)
 
+// ✅ TAMBAHAN SMART ROUTING
+import BookingModal from '../components/BookingModal'
+
 const BorrowFormPage = () => {
   const [searchParams] = useSearchParams()
   const itemId = searchParams.get('item_id')
@@ -19,6 +22,9 @@ const BorrowFormPage = () => {
   const [item, setItem] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+
+  // ✅ STATE BARU: Smart Routing
+  const [showBookingModal, setShowBookingModal] = useState(false)
 
   // ✅ STATE BARU: Nampung antrean jadwal bentrok dari Go
   const [activeBookings, setActiveBookings] = useState([])
@@ -78,7 +84,11 @@ const BorrowFormPage = () => {
       const response = await API.get(`/items/${itemId}`)
       const itemData = response.data.data
 
-      if (itemData.status !== 'available') {
+      // ✅ SMART DETECTION: Cek apakah item ini Ruangan/Aula
+      const isRoom = itemData?.category?.toLowerCase().includes('ruang') || itemData?.category?.toLowerCase() === 'aula' || itemData?.category_type?.toLowerCase() === 'ruangan'
+
+      // Hanya blokir redirect paksa jika BUKAN ruangan (Karena ruangan bisa di-booking masa depan)
+      if (!isRoom && itemData.status !== 'available') {
         toast.error(`Barang sedang ${itemData.status === 'borrowed' ? 'dipinjam' : 'tidak tersedia'}`, { id: 'status-error' })
         navigate('/')
         return
@@ -354,6 +364,9 @@ const BorrowFormPage = () => {
     )
   }
 
+  // ✅ LOGIKA SMART ROUTING DI RETURN
+  const isRoom = item?.category?.toLowerCase().includes('ruang') || item?.category?.toLowerCase() === 'aula' || item?.category_type?.toLowerCase() === 'ruangan'
+
   return (
     <main className="min-h-screen pt-24 pb-12 px-4 max-w-2xl mx-auto">
 
@@ -409,9 +422,35 @@ const BorrowFormPage = () => {
         </div>
       </div>
 
-      {/* Form */}
-      <div className={cardClass}>
-        <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Smart Routing atau Form */}
+      {isRoom ? (
+        <div className={`${cardClass} flex flex-col items-center justify-center text-center p-12 space-y-5 animate-fade-in`}>
+          <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 mb-2 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+            <Icon name="domain" className="text-4xl" />
+          </div>
+          <h2 className={`text-2xl font-bold ${titleClass}`}>Reservasi Ruangan</h2>
+          <p className={`text-sm leading-relaxed max-w-md ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>
+            Anda memindai QR Code Fasilitas/Ruangan. Peminjaman ruangan wajib melalui prosedur <b className="text-blue-500">Reservasi (Booking)</b> dan tidak dapat dilakukan secara mendadak.
+          </p>
+          <button 
+            onClick={() => setShowBookingModal(true)}
+            className="mt-6 bg-primary text-white py-3.5 px-8 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:brightness-110 transition-all w-full max-w-xs animate-bounce-subtle"
+          >
+            <Icon name="event_available" className="text-lg" />
+            Buka Form Reservasi
+          </button>
+
+          {/* Render Modal Booking kalau state true */}
+          <BookingModal 
+            isOpen={showBookingModal} 
+            onClose={() => setShowBookingModal(false)} 
+            item={item}
+            isDark={isDark}
+          />
+        </div>
+      ) : (
+        <div className={cardClass}>
+          <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>
@@ -701,8 +740,9 @@ const BorrowFormPage = () => {
               )}
             </button>
           </div>
-        </form>
-      </div>
+          </form>
+        </div>
+      )}
 
       {/* ✅ UI PRO OTS: MODAL EDUKASI "MASA TUNGGU" */}
       {showSuccessModal && (

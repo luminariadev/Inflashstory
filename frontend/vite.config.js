@@ -1,4 +1,4 @@
-﻿import { defineConfig } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa' 
 
@@ -15,8 +15,8 @@ export default defineConfig({
         navigateFallbackAllowlist: [/^(?!\/__).*/] 
       },
       manifest: {
-        name: 'Inflashtory - QR Inventory',
-        short_name: 'Inflashtory',
+        name: 'Fstorage - Inventaris & Fasilitas FST',
+        short_name: 'Fstorage',
         description: 'Aplikasi Peminjaman Barang Laboratorium',
         theme_color: '#121215',
         background_color: '#121215',
@@ -42,7 +42,7 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
             form_factor: 'wide',
-            label: 'Dashboard Admin Inflashtory'
+            label: 'Dashboard Admin Fstorage'
           },
           {
             src: '/pwa-512x512.png', // Pake logo lu dulu aja buat sementara

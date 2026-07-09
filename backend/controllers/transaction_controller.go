@@ -4,6 +4,7 @@ import (
 	// ✅ TAMBAHIN INI
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"inventory-api/models"
@@ -54,6 +55,20 @@ func BorrowItem(c *gin.Context) {
 		// A. Cek ketersediaan Item di dalam transaksi (Data dijamin paling update)
 		if err := tx.First(&finalItem, itemID).Error; err != nil {
 			return errors.New("Item tidak ditemukan")
+		}
+
+		// ✅ SECURITY PATCH OTS RUANGAN & BYPASS START_DATE
+		if req.Type != "booking" {
+			categoryLower := strings.ToLower(finalItem.Category)
+			categoryTypeLower := strings.ToLower(finalItem.CategoryType)
+			
+			if strings.Contains(categoryLower, "ruang") || categoryLower == "aula" || 
+			   strings.Contains(categoryTypeLower, "ruang") || categoryTypeLower == "aula" {
+				return errors.New("Kategori Ruangan wajib melalui prosedur Booking/Reservasi, tidak melayani peminjaman mendadak (OTS).")
+			}
+			
+			// Paksa override start date jadi time.Now() biar hacker nggak bisa bypass
+			startDate = time.Now()
 		}
 
 		if req.Type != "booking" && finalItem.Status != "available" {

@@ -28,7 +28,7 @@ const ItemInfoModal = ({ isOpen, onClose, item, activeBookings = [], isDark = tr
         <div className="flex justify-between items-start">
           <div className="space-y-1">
             <h3 className={`text-xl font-bold ${titleClass}`}>{item.name}</h3>
-            <p className="text-primary text-xs font-bold tracking-wider">DETAIL BARANG</p>
+            <p className="text-primary text-xs font-bold tracking-wider">DETAIL INVENTARIS</p>
           </div>
           <button onClick={onClose} className={`material-symbols-outlined ${isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'} transition`}>
             close
@@ -39,7 +39,7 @@ const ItemInfoModal = ({ isOpen, onClose, item, activeBookings = [], isDark = tr
           <div className="flex gap-3">
             <Icon name="inventory_2" className="text-primary text-xl" />
             <div>
-              <p className={`text-xs ${labelClass}`}>Kode Barang</p>
+              <p className={`text-xs ${labelClass}`}>Kode Item</p>
               <p className={`font-medium ${titleClass}`}>{item.code || `INV-${item.id}`}</p>
             </div>
           </div>
@@ -82,6 +82,11 @@ const ItemInfoModal = ({ isOpen, onClose, item, activeBookings = [], isDark = tr
               <p className="text-xs">
                 Upload {item.required_id !== 'none' ? item.required_id.toUpperCase() : ''}{(item.required_id !== 'none' && item.require_letter) ? ' & ' : ''}{item.require_letter ? 'Surat Izin' : ''} (via Web) / Bawa & Titipkan Fisiknya (Jika Peminjaman Manual ke Admin).
               </p>
+              {item.category?.toLowerCase().includes('ruang') && (
+                <div className="mt-2 pt-2 border-t border-red-500/20 text-xs font-semibold text-red-300">
+                  ⚠️ Aturan FST: Batas kegiatan maksimal pukul 21.00 WIB & DILARANG KERAS menempel spanduk pada Videotron!
+                </div>
+              )}
             </div>
           </div>
         )}

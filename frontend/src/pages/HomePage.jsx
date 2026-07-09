@@ -40,7 +40,7 @@ const HomePage = () => {
   }
 
   const statCards = [
-    { label: 'Total Barang', value: stats.total_items, icon: 'inventory_2', color: 'text-primary' },
+    { label: 'Total Inventaris', value: stats.total_items, icon: 'inventory_2', color: 'text-primary' },
     { label: 'Tersedia', value: stats.available_items, icon: 'check_circle', color: 'text-tertiary' },
     { label: 'Dipinjam', value: stats.borrowed_items, icon: 'sync_alt', color: 'text-secondary' },
     { label: 'Transaksi Aktif', value: stats.active_transactions, icon: 'pending_actions', color: 'text-primary-container' },
@@ -48,8 +48,8 @@ const HomePage = () => {
 
   // ✅ GANTI JADI "KEUNGGULAN SISTEM" (Biar gak bentrok sama Cara Pinjam)
   const features = [
-    { icon: 'devices', title: 'Akses Fleksibel', desc: 'Bisa Booking barang via Web dari rumah, atau datang langsung dan Scan QR di lokasi.', color: 'text-primary' },
-    { icon: 'mark_chat_unread', title: 'Notifikasi WhatsApp', desc: 'Pengingat otomatis jadwal ambil dan kembali langsung terkirim ke WhatsApp Anda.', color: 'text-[#25D366]' },
+    { icon: 'devices', title: 'Akses Fleksibel', desc: 'Bisa Booking ruangan/fasilitas via Web dari rumah, atau datang langsung dan Scan QR di lokasi.', color: 'text-primary' },
+    { icon: 'dashboard', title: 'Pantau via Dasbor Web', desc: 'Cek status persetujuan, jadwal pengambilan, dan riwayat peminjaman langsung dari sistem tanpa harus bolak-balik ke fakultas.', color: 'text-secondary' },
     { icon: 'track_changes', title: 'Real-Time Tracking', desc: 'Pantau ketersediaan stok, jumlah antrean, dan status persetujuan detik ini juga.', color: 'text-tertiary' },
   ]
 
@@ -73,11 +73,11 @@ const HomePage = () => {
           Fstorage
         </h1>
         <p className={`text-lg max-w-2xl ${textClass}`}>
-          Sistem Inventaris dan Peminjaman Barang Berbasis QR Code — Fakultas Sains dan Teknologi
+          Sistem Inventaris dan Peminjaman Ruangan/Fasilitas Berbasis QR Code — Fakultas Sains dan Teknologi
         </p>
         <div className="flex flex-wrap justify-center gap-4 pt-3">
           <a href="/items" className="bg-primary text-white font-bold text-xs tracking-wider px-6 py-4 rounded-xl inner-glow shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all">
-            LIHAT DAFTAR BARANG
+            LIHAT DAFTAR INVENTARIS
           </a>
           <a href="/how-to-borrow" className={`font-bold text-xs tracking-wider px-6 py-4 rounded-xl active:scale-95 transition-all ${
             isDark ? 'glass text-white glass-hover' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
@@ -85,6 +85,9 @@ const HomePage = () => {
             CARA PEMINJAMAN
           </a>
         </div>
+        <a href="/assets/Template_Surat_FST.docx" download className="text-xs text-slate-400 hover:text-blue-400 underline flex items-center gap-1 mt-3 justify-center">
+          <Icon name="download" className="text-[14px]" /> Unduh Template Surat FST
+        </a>
       </section>
 
       {/* Status Grid */}
@@ -105,7 +108,7 @@ const HomePage = () => {
       {/* ✅ FITUR UNGGULAN (Pengganti Langkah Peminjaman) */}
       <section className="space-y-6 pt-4">
         <div className="text-center space-y-2">
-          <h2 className={`text-3xl font-bold ${titleClass}`}>Kenapa Menggunakan Inflashtory?</h2>
+          <h2 className={`text-3xl font-bold ${titleClass}`}>Kenapa Menggunakan Fstorage?</h2>
           <p className={`${textClass}`}>Peminjaman inventaris kampus kini lebih modern, transparan, dan tanpa ribet.</p>
         </div>
         <div className="grid md:grid-cols-3 gap-5">
@@ -134,7 +137,7 @@ const HomePage = () => {
               Pengguna Baru? Wajib Baca Panduan!
             </h2>
             <p className={`text-sm md:text-base leading-relaxed ${textClass} max-w-2xl`}>
-              Jangan sampai terkena <strong className={isDark ? 'text-white' : 'text-gray-900'}>denda Rp 10.000/Jam</strong> atau bookingan hangus. Pahami alur peminjaman, syarat dokumen, dan aturan mainnya sebelum meminjam barang.
+              Jangan sampai terkena <strong className="text-red-400 font-bold">Sanksi Blacklist Sistem</strong> atau pengajuan hangus. Pahami alur, syarat dokumen, dan aturan mainnya sebelum meminjam ruangan/fasilitas.
             </p>
           </div>
         </div>
@@ -156,7 +159,7 @@ const HomePage = () => {
           </div>
           <h2 className={`text-2xl md:text-3xl font-bold ${titleClass}`}>Pantau Status Peminjamanmu!</h2>
           <p className={`text-sm md:text-base leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'} max-w-lg`}>
-            Sudah melakukan pengajuan? Masukkan NIM kamu untuk mengecek apakah barang sudah di-ACC Admin atau belum secara *real-time*.
+            Sudah melakukan pengajuan? Masukkan NIM kamu untuk mengecek apakah pengajuan kamu sudah di-ACC Admin atau belum secara *real-time*.
           </p>
         </div>
         <div className="shrink-0 w-full md:w-auto">
@@ -167,15 +170,14 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* CTA Akhir */}
       <section className={`text-center py-10 rounded-3xl border space-y-4 ${
   isDark ? 'bg-slate-950/40 border-white/5' : 'bg-gray-100 border-gray-200'
 }`}>
-  <h2 className={`text-2xl font-bold ${titleClass}`}>Butuh barang sekarang?</h2>
-  <p className={textClass}>Telusuri ribuan inventaris kampus yang siap mendukung produktivitas Anda.</p>
+  <h2 className={`text-2xl font-bold ${titleClass}`}>Butuh ruangan atau fasilitas sekarang?</h2>
+  <p className={textClass}>Telusuri inventaris Fakultas Sains dan Teknologi yang siap mendukung produktivitas Anda.</p>
   <div className="pt-2">
     <a href="/items" className="inline-block bg-primary text-white font-bold text-sm tracking-wider px-8 py-4 rounded-xl shadow-2xl shadow-primary/30 hover:scale-[1.02] transition-transform">
-      LIHAT DAFTAR BARANG
+      LIHAT DAFTAR INVENTARIS
     </a>
   </div>
 </section>

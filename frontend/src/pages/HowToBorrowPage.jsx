@@ -37,8 +37,8 @@ const HowToBorrowPage = () => {
     { icon: 'health_and_safety', text: 'Peminjam bertanggung jawab penuh atas kondisi barang selama masa pinjam.' },
     { icon: 'schedule', text: 'Maksimal peminjaman via web adalah 7 hari. Hubungi Admin jika butuh waktu lebih lama.' },
     // ✅ PERUBAHAN DENDA & DISPENSASI SENIN
-    { icon: 'payments', text: 'Keterlambatan pengembalian tanpa konfirmasi akan dikenakan denda tunai sebesar Rp 10.000 / Jam.' },
-    { icon: 'event_available', text: 'Sabtu & Minggu libur. Pengembalian akhir pekan mendapat dispensasi ke hari Senin pagi (Maksimal 10:00 WIB). Lewat dari jam tersebut, argometer denda berlaku!' },
+    { icon: 'gavel', text: 'Keterlambatan pengembalian tanpa konfirmasi akan mengakibatkan NIM/NIP Anda di-BLACKLIST dari sistem. Anda tidak akan bisa melakukan peminjaman lagi selama beberapa minggu hingga bulan.' },
+    { icon: 'event_available', text: 'Sabtu & Minggu libur. Pengembalian akhir pekan mendapat dispensasi ke hari Senin pagi (Maksimal 10:00 WIB). Lewat dari jam tersebut, fisik KTP akan ditahan dan peminjam akan dilaporkan ke Kaprodi.' },
     { icon: 'currency_exchange', text: 'Wajib mengganti barang dengan spesifikasi yang sama jika terjadi kerusakan fatal atau kehilangan.' },
     // ✅ TAMBAHAN ATURAN BOOKING HANGUS
     { icon: 'warning', text: 'Khusus jalur Booking: Jika terlambat mengambil barang lebih dari 2 Jam dari jadwal, booking OTOMATIS HANGUS.' },
@@ -123,8 +123,19 @@ const HowToBorrowPage = () => {
           </p>
         </section>
 
+        {/* Banner Template Surat */}
+        <div className="mt-8 bg-blue-500/10 border border-blue-500/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-bold text-blue-400">Butuh Format Surat Resmi?</h3>
+            <p className="text-sm text-slate-300 mt-1">Unduh template surat permohonan peminjaman Fakultas Sains dan Teknologi di sini.</p>
+          </div>
+          <a href="/assets/Template_Surat_FST.docx" download className="whitespace-nowrap bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm px-6 py-3 rounded-xl transition shadow-lg shadow-blue-500/20 flex items-center gap-2">
+            <Icon name="download" /> Unduh Template
+          </a>
+        </div>
+
         {/* Rules */}
-        <section className={`${isDark ? 'glass' : 'bg-white/80 border border-gray-200 shadow-sm'} rounded-2xl p-6 space-y-6`}>
+        <section className={`${isDark ? 'glass' : 'bg-white/80 border border-gray-200 shadow-sm'} rounded-2xl p-6 space-y-6 mt-6`}>
           <div className="flex items-center gap-3 pb-2">
             <Icon name="gavel" className="text-tertiary text-3xl" />
             <h2 className={`text-2xl font-bold ${titleClass}`}>Aturan & Kebijakan Peminjaman</h2>

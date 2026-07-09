@@ -556,14 +556,6 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
 
                   <div>
                     <label className={labelClass}>Upload Surat PDF <span className="text-red-500">*</span></label>
-                    <a
-                      href="/assets/Template_Surat_FST.docx"
-                      download
-                      className="inline-flex items-center gap-1 mb-2 text-xs font-medium text-primary hover:text-blue-500 hover:underline transition"
-                    >
-                      <Icon name="download" className="text-[14px]" />
-                      Unduh Template Surat
-                    </a>
                     <div className={`mt-0 flex justify-center px-4 pt-4 pb-5 border-2 border-dashed rounded-3xl ${isDark ? 'border-white/20 hover:border-primary/50 bg-[#1e1f23]/50' : 'border-gray-300 hover:border-primary/50 bg-gray-50'} transition-colors duration-300`}>
                       <div className="space-y-1 text-center w-full">
                         {formData.attachment ? (
@@ -619,7 +611,12 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4">
+              {/* BANNER WAJIB KTP FISIK */}
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mt-4 mb-2 text-sm font-semibold text-center shadow-sm">
+                ⚠️ PERHATIAN: KTP fisik asli WAJIB diserahkan kepada Admin sebagai jaminan saat pengambilan barang atau kunci ruangan.
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-xl font-medium text-sm transition bg-white/5 hover:bg-white/10 text-white">
                   Batal
                 </button>
