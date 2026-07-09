@@ -11,7 +11,7 @@ const CheckStatusPage = () => {
   const [hasSearched, setHasSearched] = useState(false)
   
   // ✅ STATE BARU BUAT UI/UX PRO
-  const [itemQuery, setItemQuery] = useState('') // Buat nyari nama barang
+  const [itemQuery, setItemQuery] = useState('') // Buat nyari nama inventaris
   const [visibleCount, setVisibleCount] = useState(5) // Nampilin 5 item dulu
 
   useEffect(() => {
@@ -75,7 +75,7 @@ const CheckStatusPage = () => {
         </div>
         <h1 className={`text-2xl sm:text-3xl font-bold ${titleClass}`}>Cek Status Peminjaman</h1>
         <p className={`text-sm mt-2 max-w-md mx-auto ${textClass}`}>
-          Pantau status persetujuan barang yang kamu pinjam atau *booking* secara *real-time*.
+          Pantau status persetujuan inventaris atau fasilitas yang kamu ajukan secara *real-time*.
         </p>
       </div>
 
@@ -120,13 +120,13 @@ const CheckStatusPage = () => {
                   </div>
                 </div>
 
-                {/* ✅ UI PRO 1: Kolom Cari Barang di Riwayat */}
+                {/* ✅ UI PRO 1: Kolom Cari Inventaris di Riwayat */}
                 {result.transactions.length > 0 && (
                   <div className="relative w-full sm:w-64">
                     <Icon name="search" className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm ${isDark ? 'text-slate-400' : 'text-gray-400'}`} />
                     <input 
                       type="text" 
-                      placeholder="Cari barang atau TRX..." 
+                      placeholder="Cari inventaris atau TRX..." 
                       value={itemQuery}
                       onChange={(e) => { setItemQuery(e.target.value); setVisibleCount(5); }} // Ketik baru = reset nampil 5
                       className={`w-full py-2 pl-9 pr-4 rounded-xl outline-none text-xs transition ${
@@ -223,7 +223,7 @@ const CheckStatusPage = () => {
                       // Kalau di-search tapi gak ada yang cocok
                       <div className={`text-center py-10 rounded-2xl border ${isDark ? 'border-white/5 bg-white/5' : 'border-gray-100 bg-gray-50'}`}>
                         <Icon name="manage_search" className={`text-4xl mb-2 opacity-50 ${isDark ? 'text-slate-400' : 'text-gray-400'}`} />
-                        <p className={`text-sm ${textClass}`}>Tidak ada barang yang cocok dengan pencarian "{itemQuery}"</p>
+                        <p className={`text-sm ${textClass}`}>Tidak ada pengajuan yang cocok dengan pencarian "{itemQuery}"</p>
                       </div>
                     )}
                   </div>

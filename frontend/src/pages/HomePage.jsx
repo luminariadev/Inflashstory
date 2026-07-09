@@ -59,7 +59,7 @@ const HomePage = () => {
   const mutedClass = isDark ? 'text-slate-400' : 'text-gray-500'
 
   return (
-    <main className="pt-24 pb-12 px-6 max-w-7xl mx-auto space-y-8 min-h-screen">
+    <main className="pt-24 pb-24 px-6 max-w-7xl mx-auto space-y-8 min-h-screen">
       {/* Hero Section */}
       <section className="flex flex-col items-center text-center py-10 space-y-6 relative overflow-hidden">
         {isDark && (

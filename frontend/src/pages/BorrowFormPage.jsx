@@ -89,7 +89,7 @@ const BorrowFormPage = () => {
 
       // Hanya blokir redirect paksa jika BUKAN ruangan (Karena ruangan bisa di-booking masa depan)
       if (!isRoom && itemData.status !== 'available') {
-        toast.error(`Barang sedang ${itemData.status === 'borrowed' ? 'dipinjam' : 'tidak tersedia'}`, { id: 'status-error' })
+        toast.error(`Inventaris/Ruangan sedang ${itemData.status === 'borrowed' ? 'dipakai' : 'tidak tersedia'}`, { id: 'status-error' })
         navigate('/')
         return
       }
@@ -103,7 +103,7 @@ const BorrowFormPage = () => {
       setFormData(prev => ({ ...prev, start_date: new Date() }))
 
     } catch (error) {
-      toast.error('Barang tidak ditemukan atau QR tidak valid', { id: 'fetch-error' })
+      toast.error('Data tidak ditemukan atau QR tidak valid', { id: 'fetch-error' })
       navigate('/')
     } finally {
       setLoading(false)
@@ -308,7 +308,7 @@ const BorrowFormPage = () => {
       }
     } catch (error) {
       // Ambil pesan error dari backend, kalau kosong pakai pesan fallback
-      const errorMessage = error.response?.data?.message || 'Barang gagal dipinjam (mungkin sudah di-lock orang lain)'
+      const errorMessage = error.response?.data?.message || 'Transaksi gagal (mungkin jadwal sudah di-lock orang lain)'
 
       // Tampilkan error (Hapus emoji ❌ manual biar gak double)
       toast.error(errorMessage)
@@ -358,7 +358,7 @@ const BorrowFormPage = () => {
       <main className="min-h-screen flex items-center justify-center pt-20">
         <div className={`text-center ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          Memuat data barang...
+          Memuat data inventaris...
         </div>
       </main>
     )
@@ -397,13 +397,13 @@ const BorrowFormPage = () => {
         <div className={`p-4 rounded-full inline-flex items-center justify-center mb-4 ${isDark ? 'bg-[#1e1f23]/50 border border-white/10' : 'bg-white/80 border border-gray-200 shadow-sm'}`}>
           <Icon name="qr_code_scanner" className="text-5xl text-primary" />
         </div>
-        <h1 className={`text-2xl font-bold ${titleClass}`}>Form Peminjaman Barang</h1>
+        <h1 className={`text-2xl font-bold ${titleClass}`}>Form Peminjaman Inventaris</h1>
         <p className={`text-sm mt-2 ${textClass}`}>
           Scan QR Code berhasil! Silakan isi form berikut untuk meminjam
         </p>
       </div>
 
-      {/* Info Barang */}
+      {/* Info Inventaris */}
       <div className={`${cardClass} mb-6`}>
         <div className="flex gap-4">
           <img
@@ -424,7 +424,7 @@ const BorrowFormPage = () => {
 
       {/* Smart Routing atau Form */}
       {isRoom ? (
-        <div className={`${cardClass} flex flex-col items-center justify-center text-center p-12 space-y-5 animate-fade-in`}>
+        <div className={`${cardClass} flex flex-col space-y-5 animate-fade-in`}>
           <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 mb-2 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
             <Icon name="domain" className="text-4xl" />
           </div>

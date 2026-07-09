@@ -5,7 +5,7 @@ const BorrowModal = ({ isOpen, onClose, item, isDark = true }) => {
 
   const handleContactAdmin = () => {
     const adminPhone = '6281234567890'
-    const message = encodeURIComponent(`Halo admin, saya ingin meminjam barang ${item.name} (${item.code || `INV-${item.id}`}). Apakah barang tersedia?`)
+    const message = encodeURIComponent(`Halo admin, saya ingin meminjam ${item.name} (${item.code || `INV-${item.id}`}). Apakah item tersebut tersedia?`)
     window.open(`https://wa.me/${adminPhone}?text=${message}`, '_blank')
   }
 
@@ -19,7 +19,7 @@ const BorrowModal = ({ isOpen, onClose, item, isDark = true }) => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-      <div className={`${modalClass} max-w-md w-full p-6 rounded-2xl ambient-shadow space-y-5 animate-zoom-in`} onClick={(e) => e.stopPropagation()}>
+      <div className={`${modalClass} max-w-md w-full max-h-[90vh] overflow-y-auto p-6 rounded-2xl ambient-shadow space-y-5 animate-zoom-in`} onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-start">
           <div className="space-y-1">
             <h3 className={`text-2xl font-bold ${titleClass}`}>Langkah Pinjam</h3>
@@ -34,7 +34,7 @@ const BorrowModal = ({ isOpen, onClose, item, isDark = true }) => {
           <div className="flex gap-4 items-start">
             <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0 font-bold text-sm">1</div>
             <p className={`text-sm ${textClass}`}>
-              Silakan <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>datang langsung ke Jurusan</span> untuk melakukan pengambilan fisik barang.
+              Silakan <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>datang langsung ke Jurusan</span> untuk proses serah terima fasilitas/inventaris.
             </p>
           </div>
           <div className="flex gap-4 items-start">
