@@ -19,31 +19,31 @@ const HowToBorrowPage = () => {
 
   // ✅ Pisahin Step untuk Booking dan OTS
   const bookingSteps = [
-    { number: '01', icon: 'search', title: 'Pilih Barang', desc: 'Buka menu Katalog, cari barang yang dibutuhkan dan pastikan jadwal tersedia.', color: 'text-primary' },
+    { number: '01', icon: 'search', title: 'Pilih Inventaris', desc: 'Buka menu Katalog, cari inventaris/ruangan yang dibutuhkan dan pastikan jadwal tersedia.', color: 'text-primary' },
     { number: '02', icon: 'edit_calendar', title: 'Booking & Isi Form', desc: 'Klik tombol Booking, pilih tanggal ambil/kembali, dan lengkapi data diri.', color: 'text-tertiary' },
     { number: '03', icon: 'hourglass_top', title: 'Tunggu Validasi', desc: 'Admin akan mengecek dan menyetujui (ACC) pengajuan Anda jika data valid.', color: 'text-yellow-500' },
-    { number: '04', icon: 'front_hand', title: 'Ambil Barang', desc: 'Datang ke TU/Laboratorium tepat waktu sesuai jadwal untuk mengambil fisik barang.', color: 'text-secondary' },
+    { number: '04', icon: 'front_hand', title: 'Serah Terima', desc: 'Datang ke TU/Laboratorium tepat waktu sesuai jadwal untuk mengambil fisik barang atau kunci ruangan.', color: 'text-secondary' },
   ]
 
   const otsSteps = [
-    { number: '01', icon: 'directions_walk', title: 'Datang ke Lokasi', desc: 'Kunjungi TU/Lab tempat penyimpanan barang inventaris yang ingin dipinjam.', color: 'text-primary' },
-    { number: '02', icon: 'qr_code_scanner', title: 'Scan QR Code', desc: 'Buka kamera HP atau scanner, scan stiker QR pada fisik barang.', color: 'text-tertiary' },
+    { number: '01', icon: 'directions_walk', title: 'Datang ke Lokasi', desc: 'Kunjungi TU/Lab tempat penyimpanan aset atau ruangan yang ingin dipinjam.', color: 'text-primary' },
+    { number: '02', icon: 'qr_code_scanner', title: 'Scan QR Code', desc: 'Buka kamera HP atau scanner, scan stiker QR pada fisik barang atau pintu ruangan.', color: 'text-tertiary' },
     { number: '03', icon: 'edit_document', title: 'Isi Formulir', desc: 'Isi kelengkapan data diri dan jam pengembalian pada form yang muncul di HP Anda.', color: 'text-yellow-500' },
-    { number: '04', icon: 'verified_user', title: 'Validasi & Ambil', desc: 'Tunjukkan layar HP ke Admin jaga untuk di-ACC, lalu barang siap dibawa.', color: 'text-secondary' },
+    { number: '04', icon: 'verified_user', title: 'Validasi & Serah Terima', desc: 'Tunjukkan layar HP ke Admin jaga untuk di-ACC, lalu fasilitas siap digunakan.', color: 'text-secondary' },
   ]
 
   const rules = [
     { icon: 'school', text: 'Hanya untuk keperluan akademik dan kegiatan kampus resmi.' },
-    { icon: 'health_and_safety', text: 'Peminjam bertanggung jawab penuh atas kondisi barang selama masa pinjam.' },
+    { icon: 'health_and_safety', text: 'Peminjam bertanggung jawab penuh atas kondisi inventaris/ruangan selama masa pinjam.' },
     { icon: 'schedule', text: 'Maksimal peminjaman via web adalah 7 hari. Hubungi Admin jika butuh waktu lebih lama.' },
     // ✅ PERUBAHAN DENDA & DISPENSASI SENIN
     { icon: 'gavel', text: 'Keterlambatan pengembalian tanpa konfirmasi akan mengakibatkan NIM/NIP Anda di-BLACKLIST dari sistem. Anda tidak akan bisa melakukan peminjaman lagi selama beberapa minggu hingga bulan.' },
     { icon: 'event_available', text: 'Sabtu & Minggu libur. Pengembalian akhir pekan mendapat dispensasi ke hari Senin pagi (Maksimal 10:00 WIB). Lewat dari jam tersebut, fisik KTP akan ditahan dan peminjam akan dilaporkan ke Kaprodi.' },
-    { icon: 'currency_exchange', text: 'Wajib mengganti barang dengan spesifikasi yang sama jika terjadi kerusakan fatal atau kehilangan.' },
+    { icon: 'currency_exchange', text: 'Wajib mengganti dengan spesifikasi yang sama atau menanggung biaya perbaikan jika terjadi kerusakan fatal/kehilangan.' },
     // ✅ TAMBAHAN ATURAN BOOKING HANGUS
-    { icon: 'warning', text: 'Khusus jalur Booking: Jika terlambat mengambil barang lebih dari 2 Jam dari jadwal, booking OTOMATIS HANGUS.' },
+    { icon: 'warning', text: 'Khusus jalur Booking: Jika terlambat melakukan serah terima lebih dari 2 Jam dari jadwal, booking OTOMATIS HANGUS.' },
     // ✅ TAMBAHAN ATURAN PEMINJAMAN MANUAL
-    { icon: 'contact_support', text: 'Peminjaman Langsung (Manual): Jika Anda meminjam langsung ke Admin tanpa melalui aplikasi, Anda WAJIB membawa kartu identitas fisik (KTM/KTP) atau Surat Izin (jika barang mensyaratkan) untuk diserahkan dan ditahan oleh Admin sebagai jaminan selama masa peminjaman.' },
+    { icon: 'contact_support', text: 'Peminjaman Langsung (Manual): Jika Anda meminjam langsung ke Admin tanpa melalui aplikasi, Anda WAJIB membawa kartu identitas fisik (KTM/KTP) atau Surat Izin (jika aset mensyaratkan) untuk diserahkan dan ditahan oleh Admin sebagai jaminan selama masa peminjaman.' },
   ]
 
   const cardClass = isDark ? 'glass-card' : 'glass-card-light'
@@ -57,7 +57,7 @@ const HowToBorrowPage = () => {
         <div className={`p-4 rounded-full inline-flex mx-auto ${isDark ? 'glass border-primary/20' : 'bg-white/80 border border-gray-200 shadow-sm'}`}>
           <Icon name="qr_code_scanner" className="text-4xl text-primary" />
         </div>
-        <h1 className={`text-3xl font-bold ${titleClass}`}>Cara Peminjaman Barang</h1>
+        <h1 className={`text-3xl font-bold ${titleClass}`}>Cara Peminjaman Inventaris</h1>
         <p className={`max-w-2xl mx-auto ${textClass}`}>
           Pilih jalur peminjaman yang Anda inginkan dan ikuti langkah-langkahnya.
         </p>
@@ -173,7 +173,7 @@ const HowToBorrowPage = () => {
         <p className={textClass}>Silakan Booking via Web atau langsung datang dan Scan QR di tempat.</p>
         <div className="pt-2">
           <a href="/items" className="inline-block bg-primary text-white font-bold text-sm tracking-wider px-8 py-4 rounded-xl shadow-2xl shadow-primary/30 hover:scale-105 transition-transform">
-            LIHAT DAFTAR BARANG
+            LIHAT DAFTAR INVENTARIS
           </a>
         </div>
       </section>

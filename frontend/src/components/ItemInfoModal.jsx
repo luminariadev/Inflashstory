@@ -24,7 +24,7 @@ const ItemInfoModal = ({ isOpen, onClose, item, activeBookings = [], isDark = tr
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-      <div className={`${modalClass} max-w-md w-full p-6 rounded-2xl ambient-shadow space-y-4 animate-zoom-in`} onClick={(e) => e.stopPropagation()}>
+      <div className={`${modalClass} max-w-md w-full max-h-[90vh] overflow-y-auto p-6 rounded-2xl ambient-shadow space-y-4 animate-zoom-in`} onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-start">
           <div className="space-y-1">
             <h3 className={`text-xl font-bold ${titleClass}`}>{item.name}</h3>

@@ -381,7 +381,7 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
               </div>
             </div>
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Barang yang Dibooking</p>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Item yang Dibooking</p>
               <p className="text-sm font-bold line-clamp-1">{item.name}</p>
               <p className="text-xs text-gray-500 mt-2">🕒 Ambil: {formData.start_date?.toLocaleString('id-ID', {day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'}).replace('.', ':')} WIB</p>
             </div>
@@ -395,7 +395,7 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
         <div className={`${modalClass} max-w-2xl w-full max-h-[95vh] overflow-y-auto rounded-2xl shadow-2xl animate-zoom-in flex flex-col`} onClick={(e) => e.stopPropagation()}>
           <div className={`sticky top-0 z-10 flex justify-between items-center p-6 border-b ${isDark ? 'border-white/10 bg-[#121215]/90 backdrop-blur-md' : 'border-gray-200 bg-white/90 backdrop-blur-md'}`}>
             <div className="space-y-1">
-              <h3 className={`text-xl sm:text-2xl font-bold ${titleClass}`}>Form Booking Barang</h3>
+              <h3 className={`text-xl sm:text-2xl font-bold ${titleClass}`}>Form Booking {item?.category?.toLowerCase().includes('ruang') || item?.category?.toLowerCase() === 'aula' ? 'Ruangan' : 'Inventaris'}</h3>
               <p className="text-primary text-xs font-bold tracking-wider uppercase">Amankan Jadwal {item.name}</p>
             </div>
             <button onClick={onClose} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition">
@@ -606,14 +606,14 @@ const BookingModal = ({ isOpen, onClose, item, isDark = true }) => {
                   <span className={`text-sm leading-relaxed select-none ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>
                     {item?.category_type === 'Ruangan'
                       ? "Saya setuju dengan Syarat & Ketentuan peminjaman ruangan, termasuk mematuhi batas jam operasional (maksimal pukul 21.00 WIB) dan DILARANG KERAS menempelkan spanduk fisik pada layar Videotron."
-                      : "Saya setuju dengan Syarat & Ketentuan peminjaman inventaris dan bersedia menjaga barang dengan baik."}
+                      : "Saya setuju dengan Syarat & Ketentuan peminjaman dan bersedia menjaga fasilitas/inventaris dengan baik."}
                   </span>
                 </label>
               </div>
 
               {/* BANNER WAJIB KTP FISIK */}
               <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mt-4 mb-2 text-sm font-semibold text-center shadow-sm">
-                ⚠️ PERHATIAN: KTP fisik asli WAJIB diserahkan kepada Admin sebagai jaminan saat pengambilan barang atau kunci ruangan.
+                ⚠️ PERHATIAN: KTP fisik asli WAJIB diserahkan kepada Admin sebagai jaminan saat serah terima fisik inventaris atau kunci ruangan.
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
