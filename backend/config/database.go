@@ -23,7 +23,7 @@ func InitDB() {
 		port := getEnv("DB_PORT", "3307")
 		user := getEnv("DB_USER", "root")
 		password := getEnv("DB_PASSWORD", "")
-		dbname := getEnv("DB_NAME", "inflashstory")
+		dbname := getEnv("DB_NAME", "fstorage")
 
 		dsn := user + ":" + password + "@tcp(" + host + ":" + port + ")/" + dbname + "?charset=utf8mb4&parseTime=True&loc=Local"
 		dialector = mysql.Open(dsn)

@@ -59,7 +59,7 @@ const InstallPrompt = () => {
         </div>
 
         <div className="flex-1 min-w-0">
-          <h4 className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>Install Inflashtory</h4>
+          <h4 className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>Install Fstorage</h4>
           <p className={`text-[10px] sm:text-xs mt-0.5 leading-tight truncate ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
             Akses cepat & hemat kuota
           </p>

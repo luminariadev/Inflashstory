@@ -74,7 +74,7 @@ func seedDatabase() {
 		admin := models.Admin{
 			Username:  "admin",
 			Password:  string(hashedPassword),
-			Email:     "admin@inflashstory.com",
+			Email:     "admin@fstorage.com",
 			Name:      "Administrator",
 			Role:      "Super_Admin",
 			CreatedAt: time.Now(),

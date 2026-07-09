@@ -1,0 +1,7 @@
+[build]
+  builder = "dockerfile"
+  dockerfilePath = "Dockerfile"
+
+[deploy]
+  startCommand = "./fstorage-api"
+  healthcheckPath = "/api/health"

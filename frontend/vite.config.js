@@ -17,7 +17,7 @@ export default defineConfig({
       manifest: {
         name: 'Fstorage - Inventaris & Fasilitas FST',
         short_name: 'Fstorage',
-        description: 'Aplikasi Peminjaman Barang Laboratorium',
+        description: 'Aplikasi Peminjaman Barang Fakultas Sains dan Teknologi',
         theme_color: '#121215',
         background_color: '#121215',
         display: 'standalone',

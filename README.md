@@ -159,7 +159,7 @@ go install github.com/cosmtrek/air@latest
 ### Clone Repository
 
 ```bash
-git clone https://github.com/luminariadev/Inflashstory.git
+git clone https://github.com/luminariadev/Fstorage.git
 cd Inflashstory
 ```
 
@@ -282,7 +282,7 @@ npm run dev
 ```bash
 cd backend
 go build -o inflashstory-api
-./inflashstory-api
+./fstorage-api
 ```
 
 **Frontend:**
@@ -448,24 +448,24 @@ sudo apt update
 sudo apt install golang-go
 
 # Clone & build
-git clone https://github.com/luminariadev/Inflashstory.git
+git clone https://github.com/luminariadev/Fstorage.git
 cd Inflashstory/backend
 go build -o inflashstory-api
 
 # Create systemd service
-sudo nano /etc/systemd/system/inflashstory.service
+sudo nano /etc/systemd/system/fstorage.service
 ```
 
 ```ini
 [Unit]
-Description=Inflashstory API Server
+Description=Fstorage API Server
 After=network.target
 
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/var/www/Inflashstory/backend
-ExecStart=/var/www/Inflashstory/backend/inflashstory-api
+WorkingDirectory=/var/www/Fstorage/backend
+ExecStart=/var/www/Fstorage/backend/fstorage-api
 Restart=always
 
 [Install]
@@ -474,8 +474,8 @@ WantedBy=multi-user.target
 
 ```bash
 # Start service
-sudo systemctl enable inflashstory
-sudo systemctl start inflashstory
+sudo systemctl enable fstorage
+sudo systemctl start fstorage
 ```
 
 **2. Setup Frontend**
@@ -581,7 +581,7 @@ tail -f backend/logs/app.log
 ```bash
 # 1. Fork repository
 # 2. Clone fork Anda
-git clone https://github.com/username/Inflashstory.git
+git clone https://github.com/username/Fstorage.git
 
 # 3. Buat branch fitur
 git checkout -b feature/new-feature
